@@ -1,0 +1,1542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seamless Source — Sitemap Mind Map</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0a0a12;--surface:#12121e;--surface-2:#1a1a2e;--surface-3:#22223a;
+    --border:#2a2a44;--border-glow:#6366f150;
+    --text:#e2e8f0;--text-muted:#94a3b8;--text-dim:#64748b;
+    --accent:#818cf8;--accent-bright:#a5b4fc;--accent-dim:#4f46e5;
+    --green:#34d399;--green-dim:#065f46;
+    --amber:#fbbf24;--amber-dim:#78350f;
+    --rose:#fb7185;--rose-dim:#9f1239;
+    --cyan:#22d3ee;--cyan-dim:#155e75;
+    --purple:#c084fc;--purple-dim:#581c87;
+    --orange:#fb923c;--orange-dim:#7c2d12;
+    --teal:#2dd4bf;--teal-dim:#134e4a;
+    --radius:12px;--radius-sm:8px;--radius-xs:6px;
+    --shadow:0 4px 24px rgba(0,0,0,.4);
+    --shadow-lg:0 8px 40px rgba(0,0,0,.6);
+  }
+  html{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow:hidden;height:100%}
+  body{height:100%;display:flex;flex-direction:column}
+
+  /* ── Header ── */
+  header{
+    background:linear-gradient(135deg,var(--surface) 0%,var(--surface-2) 100%);
+    border-bottom:1px solid var(--border);
+    padding:12px 20px;display:flex;align-items:center;gap:14px;
+    flex-shrink:0;z-index:100;position:relative;
+  }
+  header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+    background:linear-gradient(90deg,transparent,var(--accent),transparent)}
+  .logo{display:flex;align-items:center;gap:10px}
+  .logo-icon{width:34px;height:34px;border-radius:10px;
+    background:linear-gradient(135deg,var(--accent-dim),var(--purple));
+    display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff}
+  .logo-text{font-size:15px;font-weight:700;letter-spacing:-.3px}
+  .logo-text span{color:var(--accent-bright)}
+  .header-actions{margin-left:auto;display:flex;gap:6px;align-items:center}
+  .stats-bar{display:flex;gap:14px;margin-right:12px}
+  .stat{display:flex;flex-direction:column;align-items:center;font-size:10px;color:var(--text-muted)}
+  .stat-val{font-size:17px;font-weight:700;line-height:1}
+  .stat-val.pages{color:var(--cyan)}
+  .stat-val.posts{color:var(--green)}
+  .stat-val.links{color:var(--amber)}
+  .save-indicator{font-size:10px;color:var(--green);display:flex;align-items:center;gap:4px;margin-left:8px;opacity:0;transition:opacity .3s}
+  .save-indicator.show{opacity:1}
+
+  /* ── Buttons ── */
+  .btn{
+    padding:7px 14px;border-radius:var(--radius-xs);border:1px solid var(--border);
+    background:var(--surface-2);color:var(--text);font-size:12px;font-weight:500;
+    cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:5px;
+    font-family:inherit;white-space:nowrap;
+  }
+  .btn:hover{border-color:var(--accent);background:var(--surface-3);transform:translateY(-1px);box-shadow:0 4px 12px rgba(99,102,241,.15)}
+  .btn-primary{background:linear-gradient(135deg,var(--accent-dim),#7c3aed);border-color:var(--accent-dim);color:#fff}
+  .btn-primary:hover{background:linear-gradient(135deg,#5b21b6,#6d28d9);box-shadow:0 4px 20px rgba(99,102,241,.3)}
+  .btn-danger{border-color:var(--rose-dim);color:var(--rose)}
+  .btn-danger:hover{background:var(--rose-dim);color:#fff}
+  .btn-sm{padding:4px 8px;font-size:10px}
+
+  /* ── Canvas Area ── */
+  #canvas-wrap{flex:1;position:relative;overflow:hidden;cursor:grab}
+  #canvas-wrap.grabbing{cursor:grabbing}
+  #canvas-wrap.connecting{cursor:crosshair}
+  #canvas-wrap.lassoing{cursor:crosshair}
+  #canvas{position:absolute;top:0;left:0;transform-origin:0 0}
+  svg#connections{position:absolute;top:0;left:0;overflow:visible;pointer-events:none;z-index:2;width:1px;height:1px}
+
+  /* ── Lasso / Marquee ── */
+  #lasso{
+    position:absolute;
+    border:1px dashed var(--accent-bright);
+    background:rgba(99,102,241,0.15);
+    z-index:1000;
+    pointer-events:none;
+    display:none;
+  }
+
+  /* ── SVG Connection Paths ── */
+  svg#connections path.conn-path{
+    fill:none;stroke-width:2;opacity:.45;pointer-events:stroke;
+    cursor:pointer;transition:opacity .15s, stroke-width .15s;
+  }
+  svg#connections path.conn-path:hover{opacity:1;stroke-width:3}
+  svg#connections path.conn-temp{fill:none;stroke-width:2.5;opacity:.7;stroke-dasharray:8 4;animation:dashFlow .4s linear infinite;pointer-events:none}
+  @keyframes dashFlow{to{stroke-dashoffset:-12}}
+
+  /* ── Per-connection delete button ── */
+  .conn-del{
+    position:absolute;width:18px;height:18px;border-radius:50%;
+    background:var(--rose-dim);color:var(--rose);font-size:10px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;z-index:12;border:1.5px solid var(--bg);
+    opacity:0;transition:opacity .15s, transform .12s;
+    pointer-events:auto;line-height:1;
+  }
+  .conn-del:hover{opacity:1!important;transform:scale(1.3);background:var(--rose);color:#fff}
+
+  /* ── Nodes ── */
+  .node{
+    position:absolute;border-radius:var(--radius);padding:12px 16px 12px 20px;
+    min-width:200px;max-width:300px;cursor:move;z-index:10;
+    border:1px solid var(--border);
+    transition:box-shadow .25s, border-color .25s;
+    user-select:none;
+  }
+  .node.status-updated{border-color:var(--green)}
+  .node.status-need-to-update{border-color:var(--rose)}
+  .node.status-to-be-built{border-color:var(--amber)}
+  
+  .node:hover{z-index:20;border-color:var(--accent);box-shadow:0 0 20px rgba(99,102,241,.2)}
+  .node.selected{border-color:var(--accent-bright)!important;box-shadow:0 0 30px rgba(99,102,241,.35)!important;z-index:25}
+  .node.drop-target{border-color:var(--green)!important;box-shadow:0 0 25px rgba(52,211,153,.4)!important}
+
+  .node-domain{
+    background:linear-gradient(145deg,#1e1b4b,#312e81);border-color:#4338ca;
+    min-width:220px;text-align:center;z-index:15;padding:16px 24px;
+  }
+  .node-domain .node-title{font-size:17px;font-weight:800;color:#c7d2fe;letter-spacing:-.3px}
+  .node-domain .node-subtitle{font-size:11px;color:#818cf8;margin-top:3px}
+
+  .node-branch{background:linear-gradient(145deg,var(--surface),var(--surface-2));border-left:3px solid var(--cyan)}
+  .node-branch .node-title{font-size:13px;font-weight:700;color:var(--cyan)}
+
+  .node-pillar{background:linear-gradient(145deg,var(--surface-2),var(--surface-3))}
+  .node-pillar .node-title{font-size:12px;font-weight:600}
+
+  .node-page{background:var(--surface);border-left:3px solid var(--green)}
+  .node-page .node-title{font-size:11px;font-weight:600;color:var(--green)}
+
+  .node-post{background:var(--surface);border-left:3px solid var(--amber)}
+  .node-post .node-title{font-size:11px;font-weight:600;color:var(--amber)}
+
+  .node-success{background:var(--surface);border-left:3px solid var(--purple)}
+  .node-success .node-title{font-size:11px;font-weight:600;color:var(--purple)}
+
+  /* ── Node meta fields ── */
+  .node-meta{margin-top:6px;display:flex;flex-direction:column;gap:3px}
+  .node-meta-row{display:flex;align-items:center;gap:5px;font-size:9.5px;color:var(--text-dim);line-height:1.3}
+  .node-meta-row .label{color:var(--text-muted);font-weight:600;min-width:52px;text-transform:uppercase;letter-spacing:.3px;flex-shrink:0}
+  .node-meta-row .value{color:var(--text);word-break:break-all}
+  .node-meta-row .value.empty{color:var(--text-dim);font-style:italic}
+
+  .pillar-tag{
+    display:inline-flex;align-items:center;padding:1px 6px;border-radius:3px;
+    font-size:9px;font-weight:600;letter-spacing:.3px;
+  }
+  .pillar-tag.t-dpp{background:#818cf820;color:#818cf8}
+  .pillar-tag.t-compliance{background:#f472b620;color:#f472b6}
+  .pillar-tag.t-sustainability{background:#34d39920;color:#34d399}
+  .pillar-tag.t-materials{background:#fbbf2420;color:#fbbf24}
+  .pillar-tag.t-traceability{background:#22d3ee20;color:#22d3ee}
+  .pillar-tag.t-success{background:#c084fc20;color:#c084fc}
+
+  .intent-tag{
+    display:inline-flex;padding:1px 5px;border-radius:3px;
+    font-size:9px;font-weight:600;
+  }
+  .intent-tag.informational{background:rgba(34,211,238,.15);color:#22d3ee}
+  .intent-tag.transactional{background:rgba(251,191,36,.15);color:#fbbf24}
+  .intent-tag.navigational{background:rgba(129,140,248,.15);color:#818cf8}
+  .intent-tag.commercial{background:rgba(251,146,60,.15);color:#fb923c}
+
+  .status-tag{
+    display:inline-flex;padding:1px 6px;border-radius:3px;
+    font-size:9px;font-weight:600;letter-spacing:.3px;
+  }
+  .status-tag.s-to-be-built{background:rgba(251,113,133,.15);color:#fb7185}
+  .status-tag.s-updated{background:rgba(52,211,153,.15);color:#34d399}
+  .status-tag.s-need-to-update{background:rgba(251,191,36,.15);color:#fbbf24}
+
+  .node-actions{display:flex;gap:4px;margin-top:6px;opacity:0;transition:opacity .2s}
+  .node:hover .node-actions{opacity:1}
+
+  /* ── Connection Ports ── */
+  .port{
+    position:absolute;width:12px;height:12px;border-radius:50%;
+    border:2px solid var(--bg);cursor:crosshair;z-index:15;
+    transition:transform .15s, box-shadow .15s;
+  }
+  .port:hover{transform:scale(1.6);box-shadow:0 0 10px currentColor}
+  .port.port-out{bottom:-6px;left:50%;margin-left:-6px;background:var(--accent)}
+  .port.port-in{top:-6px;left:50%;margin-left:-6px;background:var(--green)}
+  .port.port-out.active{animation:portPulse 1s ease infinite}
+  .port.port-in.glow{transform:scale(1.5);box-shadow:0 0 12px var(--green)}
+  @keyframes portPulse{0%,100%{box-shadow:0 0 0 0 rgba(129,140,248,.6)}50%{box-shadow:0 0 0 8px rgba(129,140,248,0)}}
+
+  /* Port color per type */
+  .node-domain .port.port-out{background:#818cf8}
+  .node-branch .port.port-out{background:var(--cyan)}
+  .node-pillar .port.port-out{background:var(--accent)}
+  .node-page .port.port-out{background:var(--green)}
+  .node-post .port.port-out{background:var(--amber)}
+  .node-success .port.port-out{background:var(--purple)}
+
+  /* ── Link badge ── */
+  .link-badge{
+    position:absolute;top:-6px;right:12px;height:16px;border-radius:8px;
+    background:var(--accent-dim);color:#fff;font-size:8px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+    border:2px solid var(--bg);padding:0 4px;min-width:16px;
+  }
+
+  /* ── Pillar color coding on node border ── */
+  .pillar-dpp{border-left-color:#818cf8!important}
+  .pillar-compliance{border-left-color:#f472b6!important}
+  .pillar-sustainability{border-left-color:#34d399!important}
+  .pillar-materials{border-left-color:#fbbf24!important}
+  .pillar-traceability{border-left-color:#22d3ee!important}
+  .pillar-success{border-left-color:#c084fc!important}
+
+  /* ── Panel ── */
+  .panel{
+    position:fixed;right:-440px;top:0;bottom:0;width:420px;
+    background:var(--surface);border-left:1px solid var(--border);
+    z-index:200;transition:right .35s cubic-bezier(.4,0,.2,1);
+    display:flex;flex-direction:column;
+  }
+  .panel.open{right:0}
+  .panel-header{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .panel-header h2{font-size:15px;font-weight:700}
+  .panel-body{flex:1;overflow-y:auto;padding:18px 20px}
+  .panel-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
+
+  .form-group{margin-bottom:14px}
+  .form-group label{display:block;font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+  .form-group input,.form-group select,.form-group textarea{
+    width:100%;padding:9px 11px;border-radius:var(--radius-xs);
+    border:1px solid var(--border);background:var(--surface-2);
+    color:var(--text);font-size:12px;font-family:inherit;transition:border-color .2s;
+  }
+  .form-group input:focus,.form-group select:focus,.form-group textarea:focus{
+    outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(99,102,241,.15);
+  }
+  .form-group input.error{border-color:var(--rose)!important;box-shadow:0 0 0 3px rgba(251,113,133,.15)!important}
+  .form-group .field-error{color:var(--rose);font-size:10px;margin-top:3px;display:none}
+  .form-group .field-error.show{display:block}
+  .form-group textarea{min-height:50px;resize:vertical}
+
+  /* ── Context Menu ── */
+  .context-menu{
+    position:fixed;background:var(--surface-2);border:1px solid var(--border);
+    border-radius:var(--radius-sm);padding:5px;min-width:190px;
+    z-index:300;box-shadow:var(--shadow-lg);display:none;
+  }
+  .context-menu.show{display:block}
+  .context-menu-item{
+    padding:7px 11px;border-radius:var(--radius-xs);font-size:12px;
+    cursor:pointer;display:flex;align-items:center;gap:7px;transition:background .15s;
+  }
+  .context-menu-item:hover{background:var(--surface-3)}
+  .context-menu-item.danger{color:var(--rose)}
+  .context-menu-item.danger:hover{background:var(--rose-dim)}
+  .context-menu-sep{height:1px;background:var(--border);margin:3px 0}
+
+  /* ── Toolbar ── */
+  .toolbar{
+    position:fixed;bottom:14px;left:50%;transform:translateX(-50%);
+    background:var(--surface-2);border:1px solid var(--border);
+    border-radius:var(--radius);padding:6px 10px;display:flex;gap:4px;
+    z-index:50;box-shadow:var(--shadow);
+  }
+  .toolbar .btn{border:none;background:transparent;padding:7px 9px;font-size:11px}
+  .toolbar .btn:hover{background:var(--surface-3)}
+  .toolbar .separator{width:1px;background:var(--border);margin:0 3px}
+  .zoom-display{font-size:11px;color:var(--text-muted);display:flex;align-items:center;min-width:40px;justify-content:center;font-weight:600}
+
+  /* ── Toast ── */
+  .toast-container{position:fixed;top:60px;right:16px;z-index:500;display:flex;flex-direction:column;gap:6px}
+  .toast{
+    padding:10px 16px;border-radius:var(--radius-sm);background:var(--surface-2);
+    border:1px solid var(--border);font-size:12px;max-width:300px;
+    animation:toastIn .3s ease,toastOut .3s ease 2.7s forwards;box-shadow:var(--shadow);
+  }
+  .toast.success{border-color:var(--green-dim);color:var(--green)}
+  .toast.error{border-color:var(--rose-dim);color:var(--rose)}
+  .toast.info{border-color:var(--accent-dim);color:var(--accent-bright)}
+  @keyframes toastIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+  @keyframes toastOut{from{opacity:1}to{opacity:0;transform:translateX(40px)}}
+
+  /* ── Search ── */
+  .search-box{position:relative}
+  .search-box input{
+    padding:6px 10px 6px 28px;border-radius:20px;border:1px solid var(--border);
+    background:var(--surface-2);color:var(--text);font-size:11px;width:170px;
+    font-family:inherit;transition:all .2s;
+  }
+  .search-box input:focus{outline:none;border-color:var(--accent);width:230px}
+  .search-box::before{content:'🔍';position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:11px}
+
+  /* ── Overlay ── */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:199;opacity:0;pointer-events:none;transition:opacity .3s}
+  .overlay.show{opacity:1;pointer-events:auto}
+
+  /* ── Legend ── */
+  .legend{
+    position:fixed;top:62px;left:14px;background:var(--surface);
+    border:1px solid var(--border);border-radius:var(--radius);
+    padding:10px 14px;z-index:50;font-size:10px;max-width:160px;
+  }
+  .legend-title{font-weight:700;margin-bottom:6px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;font-size:9px}
+  .legend-item{display:flex;align-items:center;gap:6px;margin-bottom:3px}
+  .legend-dot{width:8px;height:8px;border-radius:3px;flex-shrink:0}
+
+  /* ── Connecting Banner ── */
+  .connect-banner{
+    position:fixed;top:50px;left:50%;transform:translateX(-50%);
+    background:linear-gradient(135deg,var(--accent-dim),#7c3aed);
+    color:#fff;padding:8px 20px;border-radius:0 0 var(--radius) var(--radius);
+    font-size:12px;font-weight:600;z-index:100;display:none;
+    box-shadow:0 4px 20px rgba(99,102,241,.4);align-items:center;gap:8px;
+  }
+  .connect-banner.show{display:flex}
+  .connect-banner .cancel-link{padding:2px 8px;border-radius:4px;background:rgba(255,255,255,.2);cursor:pointer;font-size:10px}
+  .connect-banner .cancel-link:hover{background:rgba(255,255,255,.3)}
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar{width:5px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+  ::-webkit-scrollbar-thumb:hover{background:var(--text-dim)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">SS</div>
+    <div class="logo-text">Seamless<span>Source</span> · Sitemap</div>
+  </div>
+  <div class="stats-bar">
+    <div class="stat"><span class="stat-val pages" id="stat-pages">0</span>Pages</div>
+    <div class="stat"><span class="stat-val posts" id="stat-posts">0</span>Posts</div>
+    <div class="stat"><span class="stat-val links" id="stat-links">0</span>Links</div>
+  </div>
+  <div class="save-indicator" id="save-ind">✓ Saved</div>
+  <div class="header-actions">
+    <div class="search-box"><input type="text" id="search" placeholder="Search nodes…" autocomplete="off"></div>
+    <button class="btn btn-primary" onclick="manualSave()">💾 Save</button>
+    <button class="btn" onclick="addNodePanel('page')">➕ Page</button>
+    <button class="btn" onclick="addNodePanel('post')">📝 Post</button>
+    <button class="btn" onclick="exportData()">⬇️ Export</button>
+    <button class="btn" onclick="importData()">📂 Import</button>
+    <button class="btn" onclick="resetView()">🏠 Reset</button>
+  </div>
+</header>
+
+<div class="connect-banner" id="connect-banner">
+  <span>🔗 Drag to a green input port to connect</span>
+  <span class="cancel-link" onclick="cancelConnect()">ESC Cancel</span>
+</div>
+
+<div class="legend">
+  <div class="legend-title">Node Types</div>
+  <div class="legend-item"><div class="legend-dot" style="background:linear-gradient(135deg,#4338ca,#6366f1)"></div>Domain</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--cyan)"></div>Branch</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Core Page</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>Blog Post</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div>Success Story</div>
+  <div class="legend-title" style="margin-top:8px">Ports</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--accent);border-radius:50%"></div>Output → drag from</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--green);border-radius:50%"></div>Input ← drop here</div>
+  <div class="legend-title" style="margin-top:8px">Tips</div>
+  <div class="legend-item" style="color:var(--text-dim);font-size:9px;">✕ on line = delete link</div>
+  <div class="legend-item" style="color:var(--text-dim);font-size:9px;">Shift+Drag = multi-select</div>
+</div>
+
+<div id="canvas-wrap">
+  <svg id="connections"></svg>
+  <div id="canvas"></div>
+  <div id="conn-del-layer"></div>
+  <div id="lasso"></div>
+</div>
+
+<div class="toolbar">
+  <button class="btn" onclick="zoomIn()">➕</button>
+  <div class="zoom-display" id="zoom-display">100%</div>
+  <button class="btn" onclick="zoomOut()">➖</button>
+  <div class="separator"></div>
+  <button class="btn" onclick="fitAll()">📐 Fit</button>
+  <div class="separator"></div>
+  <button class="btn" onclick="autoLayout()">🔄 Auto Layout</button>
+  <div class="separator"></div>
+  <button class="btn" onclick="toggleCollapseAll()">📁 Toggle All</button>
+</div>
+
+<div class="overlay" id="overlay" onclick="closePanel()"></div>
+<div class="panel" id="panel">
+  <div class="panel-header">
+    <h2 id="panel-title">Add Node</h2>
+    <button class="btn btn-sm" onclick="closePanel()">✕</button>
+  </div>
+  <div class="panel-body">
+    <div class="form-group">
+      <label>Type</label>
+      <select id="form-type">
+        <option value="page">Core Page</option>
+        <option value="post">Blog Post</option>
+        <option value="success">Success Story</option>
+        <option value="pillar">Content Pillar</option>
+        <option value="branch">Branch / Group</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Title / Name</label>
+      <input type="text" id="form-title" placeholder="e.g. Digital Product Passport Guide">
+    </div>
+    <div class="form-group">
+      <label>Focus Keyword</label>
+      <input type="text" id="form-keyword" placeholder="e.g. digital product passport fashion">
+      <div class="field-error" id="keyword-error">⚠ This focus keyword is already used by another node!</div>
+    </div>
+    <div class="form-group">
+      <label>URL / Link</label>
+      <input type="text" id="form-url" placeholder="e.g. /digital-product-passport-guide/">
+    </div>
+    <div class="form-group">
+      <label>Content Pillar</label>
+      <select id="form-pillar">
+        <option value="">— None —</option>
+        <option value="dpp">DPP / Product Passport</option>
+        <option value="compliance">Compliance & ESPR</option>
+        <option value="sustainability">Sustainability</option>
+        <option value="materials">Materials & Textiles</option>
+        <option value="traceability">Traceability</option>
+        <option value="success">Success Stories</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Search Intent</label>
+      <select id="form-intent">
+        <option value="">— None —</option>
+        <option value="informational">Informational</option>
+        <option value="transactional">Transactional</option>
+        <option value="commercial">Commercial Investigation</option>
+        <option value="navigational">Navigational</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Status</label>
+      <select id="form-status">
+        <option value="">— None —</option>
+        <option value="to-be-built">To Be Built</option>
+        <option value="updated">Updated</option>
+        <option value="need-to-update">Need to Update</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Last Updated</label>
+      <input type="date" id="form-lastUpdated" placeholder="YYYY-MM-DD">
+    </div>
+    <div class="form-group">
+      <label>Notes</label>
+      <textarea id="form-notes" placeholder="Internal linking notes, keyword targets…"></textarea>
+    </div>
+  </div>
+  <div class="panel-footer">
+    <button class="btn" onclick="closePanel()">Cancel</button>
+    <button class="btn btn-primary" id="panel-save" onclick="saveNode()">Add Node</button>
+  </div>
+</div>
+
+<div class="context-menu" id="context-menu">
+  <div class="context-menu-item" onclick="editNode()">✏️ Edit Node</div>
+  <div class="context-menu-item" onclick="duplicateNode()">📋 Duplicate</div>
+  <div class="context-menu-sep"></div>
+  <div class="context-menu-item" onclick="disconnectAll()">🔌 Disconnect All</div>
+  <div class="context-menu-sep"></div>
+  <div class="context-menu-item danger" onclick="deleteNode()">🗑️ Delete Node</div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+<input type="file" id="file-import" accept=".json" style="display:none" onchange="handleImport(event)">
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+const STORAGE_KEY = 'seamlesssource-sitemap-v3';
+let nodes = [];
+let links = [];
+let nextId = 1;
+let nextLinkId = 1;
+
+let viewX = 0, viewY = 0, zoom = 1;
+let isDraggingCanvas = false, dragStartX = 0, dragStartY = 0;
+let allCollapsed = false;
+
+// Multi-selection state
+let selectedNodeIds = new Set();
+let rightClickedNodeId = null;
+
+// Node drag state
+let isDraggingNode = false;
+let dragGroup = []; // Array of { node, startX, startY, offX, offY }
+
+// Lasso / Marquee state
+let isLassoing = false;
+let lassoStartX = 0, lassoStartY = 0;
+
+let isConnecting = false;
+let connectSourceId = null;
+let tempLineEl = null;
+
+const canvasWrap = document.getElementById('canvas-wrap');
+const canvas = document.getElementById('canvas');
+const svgEl = document.getElementById('connections');
+const connDelLayer = document.getElementById('conn-del-layer');
+const lassoEl = document.getElementById('lasso');
+
+// Pillar labels
+const PILLAR_LABELS = {
+  dpp: 'DPP', compliance: 'Compliance', sustainability: 'Sustainability',
+  materials: 'Materials', traceability: 'Traceability', success: 'Success Stories'
+};
+const PILLAR_COLORS = {
+  dpp: '#818cf8', compliance: '#f472b6', sustainability: '#34d399',
+  materials: '#fbbf24', traceability: '#22d3ee', success: '#c084fc', '': '#4a4a6a'
+};
+const STATUS_LABELS = {
+  'to-be-built': 'To Be Built', 'updated': 'Updated', 'need-to-update': 'Need to Update'
+};
+
+// ═══════════════════════════════════════════════════════════
+// DEFAULT DATA
+// ═══════════════════════════════════════════════════════════
+function getDefaultData() {
+  const d = { nodes: [], links: [] };
+  let id = 1, lid = 1;
+
+  d.nodes.push({ id: id++, type:'domain', title:'seamlesssource.com', subtitle:'PRM SaaS Platform', url:'https://seamlesssource.com', x:2000, y:100, pillar:'', keyword:'', intent:'', notes:'Domain root', collapsed:false, status:'', lastUpdated:'' });
+
+  const pagesId = id;
+  d.nodes.push({ id: id++, type:'branch', title:'📄 Core Pages', url:'', x:1000, y:400, pillar:'', keyword:'', intent:'', notes:'7 core pages', collapsed:false, status:'', lastUpdated:'' });
+  const postsId = id;
+  d.nodes.push({ id: id++, type:'branch', title:'📝 Blog Posts (Keep)', url:'', x:2700, y:400, pillar:'', keyword:'', intent:'', notes:'Posts kept after pruning', collapsed:false, status:'', lastUpdated:'' });
+  const successBrId = id;
+  d.nodes.push({ id: id++, type:'branch', title:'🏆 Success Stories', url:'', x:1850, y:400, pillar:'', keyword:'', intent:'', notes:'Case studies', collapsed:false, status:'', lastUpdated:'' });
+
+  d.links.push({ id:lid++, source:1, target:pagesId });
+  d.links.push({ id:lid++, source:1, target:postsId });
+  d.links.push({ id:lid++, source:1, target:successBrId });
+
+  const corePages = [
+    { title:'Homepage', url:'/', kw:'seamless source prm', intent:'navigational' },
+    { title:'Digital Product Passport', url:'/digital-product-passport/', kw:'digital product passport', intent:'informational' },
+    { title:'Product Relationship Management', url:'/product-relationship-management-prm/', kw:'product relationship management', intent:'informational' },
+    { title:'About Us', url:'/about/', kw:'about seamless source', intent:'navigational' },
+    { title:'Contact', url:'/contact/', kw:'contact seamless source', intent:'navigational' },
+    { title:'Pricing', url:'/pricing/', kw:'seamless source pricing', intent:'commercial' },
+    { title:'Book a Demo', url:'/book-a-demo/', kw:'book demo prm', intent:'transactional' },
+  ];
+  corePages.forEach((p,i)=>{
+    d.nodes.push({ id:id++, type:'page', title:p.title, url:p.url, x:400+i*250, y:680, pillar:'', keyword:p.kw, intent:p.intent, notes:'', collapsed:false, status:'updated', lastUpdated:'' });
+    d.links.push({ id:lid++, source:pagesId, target:id-1 });
+  });
+
+  // Pillars
+  const pillarDppId = id;
+  d.nodes.push({ id:id++, type:'pillar', title:'🔑 DPP / Product Passport', url:'', x:2300, y:700, pillar:'dpp', keyword:'', intent:'', notes:'DPP content cluster', collapsed:false, status:'', lastUpdated:'' });
+  d.links.push({ id:lid++, source:postsId, target:pillarDppId });
+
+  [{title:'DPP for Fashion Guide 2026', slug:'digital-product-passport-for-fashion-guide-2026', kw:'dpp fashion guide 2026', intent:'informational'},
+   {title:'DPP Implementation for Fashion', slug:'digital-product-passport-implementation-fashion', kw:'dpp implementation fashion', intent:'informational'}
+  ].forEach((p,i)=>{
+    d.nodes.push({ id:id++, type:'post', title:p.title, url:`/${p.slug}/`, x:2150+i*280, y:940, pillar:'dpp', keyword:p.kw, intent:p.intent, notes:'', collapsed:false, status:'need-to-update', lastUpdated:'' });
+    d.links.push({ id:lid++, source:pillarDppId, target:id-1 });
+  });
+
+  const pillarCompId = id;
+  d.nodes.push({ id:id++, type:'pillar', title:'⚖️ Compliance & ESPR', url:'', x:2850, y:700, pillar:'compliance', keyword:'', intent:'', notes:'EU regulations', collapsed:false, status:'', lastUpdated:'' });
+  d.links.push({ id:lid++, source:postsId, target:pillarCompId });
+
+  [{title:'ESPR for UK Fashion Brands 2026', slug:'espr-for-uk-fashion-brands-2026', kw:'espr uk fashion brands', intent:'informational'},
+   {title:'New EU Rules Product Sustainability', slug:'new-eu-rules-for-product-sustainability-how-you-can-comply', kw:'eu rules product sustainability', intent:'informational'}
+  ].forEach((p,i)=>{
+    d.nodes.push({ id:id++, type:'post', title:p.title, url:`/${p.slug}/`, x:2700+i*280, y:940, pillar:'compliance', keyword:p.kw, intent:p.intent, notes:'', collapsed:false, status:'need-to-update', lastUpdated:'' });
+    d.links.push({ id:lid++, source:pillarCompId, target:id-1 });
+  });
+
+  const pillarSustId = id;
+  d.nodes.push({ id:id++, type:'pillar', title:'🌿 Sustainability', url:'', x:3450, y:700, pillar:'sustainability', keyword:'', intent:'', notes:'', collapsed:false, status:'', lastUpdated:'' });
+  d.links.push({ id:lid++, source:postsId, target:pillarSustId });
+
+  [{title:'5 Ways to Increase Sustainability', slug:'increase-sustainability-fashion-brand-today', kw:'increase sustainability fashion', intent:'informational'},
+   {title:'Sustainability Key Words', slug:'sustainability-key-words-in-the-industry', kw:'sustainability keywords fashion', intent:'informational'},
+   {title:'Recycled Fashion — Best Way Forward?', slug:'recycled-fashion-is-this-innovative-solution-the-best-way-forward', kw:'recycled fashion', intent:'informational'},
+   {title:'Sustainable & Ethical – Carbon Footprint', slug:'sustainable-and-ethical-moves-carbon-footprint', kw:'sustainable ethical carbon footprint', intent:'informational'}
+  ].forEach((p,i)=>{
+    d.nodes.push({ id:id++, type:'post', title:p.title, url:`/${p.slug}/`, x:3200+i*250, y:940+(i%2)*60, pillar:'sustainability', keyword:p.kw, intent:p.intent, notes:'', collapsed:false, status:'need-to-update', lastUpdated:'' });
+    d.links.push({ id:lid++, source:pillarSustId, target:id-1 });
+  });
+
+  const pillarMatId = id;
+  d.nodes.push({ id:id++, type:'pillar', title:'🧵 Materials & Textiles', url:'', x:2300, y:1180, pillar:'materials', keyword:'', intent:'', notes:'', collapsed:false, status:'', lastUpdated:'' });
+  d.links.push({ id:lid++, source:postsId, target:pillarMatId });
+
+  [{title:'What is Cotton — Properties', slug:'what-is-cotton-cotton-fabric-properties-products-and-production', kw:'what is cotton fabric', intent:'informational'},
+   {title:'What is Wool — Properties', slug:'what-is-wool-wool-fabric-properties-products-and-production', kw:'what is wool fabric', intent:'informational'},
+   {title:'What is Polyester — Properties', slug:'what-is-polyester-polyester-fabric-properties-products-and-production', kw:'what is polyester fabric', intent:'informational'}
+  ].forEach((p,i)=>{
+    d.nodes.push({ id:id++, type:'post', title:p.title, url:`/${p.slug}/`, x:2100+i*280, y:1400, pillar:'materials', keyword:p.kw, intent:p.intent, notes:'', collapsed:false, status:'need-to-update', lastUpdated:'' });
+    d.links.push({ id:lid++, source:pillarMatId, target:id-1 });
+  });
+
+  const pillarTraceId = id;
+  d.nodes.push({ id:id++, type:'pillar', title:'🔍 Traceability', url:'', x:2900, y:1180, pillar:'traceability', keyword:'', intent:'', notes:'', collapsed:false, status:'', lastUpdated:'' });
+  d.links.push({ id:lid++, source:postsId, target:pillarTraceId });
+
+  [{title:'Traceability Within Fashion Industry', slug:'traceability-within-the-fashion-industry', kw:'traceability fashion industry', intent:'informational'},
+   {title:'Traceability in PPE: DPP for Trust', slug:'traceability-in-ppe-digital-product-passports', kw:'traceability ppe digital product passport', intent:'informational'}
+  ].forEach((p,i)=>{
+    d.nodes.push({ id:id++, type:'post', title:p.title, url:`/${p.slug}/`, x:2700+i*280, y:1400, pillar:'traceability', keyword:p.kw, intent:p.intent, notes:'', collapsed:false, status:'need-to-update', lastUpdated:'' });
+    d.links.push({ id:lid++, source:pillarTraceId, target:id-1 });
+  });
+
+  // Success Stories
+  [{title:'BB Jeans × Seamless Source', slug:'digital-product-passport-case-study-bb-jeans'},
+   {title:'HER Bodywear × Seamless Source', slug:'digital-product-passport-success-story-her-bodywear-x-seamless-source'},
+   {title:'Munãgiso Reusable Period Pants', slug:'munagiso-reusable-period-pants'},
+   {title:'Kinzie Quinn Designs', slug:'how-seamless-source-helped-kinzie-quinn-turn-her-designs-into-reality'},
+   {title:'DUSANNA Bags & Accessories', slug:'dusanna-bags-accessories'},
+   {title:'RoamWear × Seamless Source', slug:'from-eco-conscious-to-competitive-how-roamwear-redefined-value-with-a-digital-product-passport'},
+   {title:'SOUL CAP', slug:'soul-cap-swimming-caps-to-swimwear'},
+   {title:'Clementine Collective', slug:'clementine-collective-knit-dolls'}
+  ].forEach((p,i)=>{
+    const col=Math.floor(i/2), row=i%2;
+    d.nodes.push({ id:id++, type:'success', title:p.title, url:`/${p.slug}/`, x:1500+col*250, y:660+row*120, pillar:'success', keyword:'', intent:'', notes:'', collapsed:false, status:'updated', lastUpdated:'' });
+    d.links.push({ id:lid++, source:successBrId, target:id-1 });
+  });
+
+  return { data:d, nid:id, nlid:lid };
+}
+
+// ═══════════════════════════════════════════════════════════
+// PERSISTENCE — Backend Database API
+// ═══════════════════════════════════════════════════════════
+async function saveState() {
+  const stateData = { nodes, links, nextId, nextLinkId };
+  
+  try {
+    const response = await fetch('/api/sitemap', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(stateData)
+    });
+    
+    if (!response.ok) throw new Error('Network response was not ok');
+    
+    const ind = document.getElementById('save-ind');
+    ind.classList.add('show');
+    clearTimeout(ind._t);
+    ind._t = setTimeout(()=> ind.classList.remove('show'), 1500);
+    return true;
+  } catch (error) {
+    console.error('Save failed:', error);
+    toast('Failed to save to database. Check network.', 'error');
+    return false;
+  }
+}
+
+async function manualSave() {
+  const btn = document.querySelector('button[onclick="manualSave()"]');
+  const originalText = btn ? btn.innerText : '💾 Save';
+  if (btn) btn.innerText = '💾 Saving...';
+  
+  const success = await saveState();
+  
+  if (btn) btn.innerText = originalText;
+  if (success) {
+    toast('Saved to database successfully!', 'success');
+  }
+}
+
+async function loadState() {
+  try {
+    const response = await fetch('/api/sitemap');
+    if (response.status === 404) {
+      return false; 
+    }
+    if (!response.ok) throw new Error('Failed to load data');
+    
+    const d = await response.json();
+    nodes = d.nodes || [];
+    links = d.links || [];
+    nextId = d.nextId || 1;
+    nextLinkId = d.nextLinkId || 1;
+    
+    nodes.forEach(n => {
+      if (n.keyword === undefined) n.keyword = '';
+      if (n.intent === undefined) n.intent = '';
+      if (n.status === undefined) n.status = '';
+      if (n.lastUpdated === undefined) n.lastUpdated = '';
+    });
+    links.forEach(l => { if (!l.id) l.id = nextLinkId++; });
+    
+    return true;
+  } catch (error) {
+    console.error('Load failed:', error);
+    toast('Failed to load data from server. Using default.', 'error');
+    return false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// PORT POSITIONS — computed after DOM layout
+// ═══════════════════════════════════════════════════════════
+const _portCache = {};
+function cachePortPositions() {
+  canvas.querySelectorAll('.node').forEach(el => {
+    const id = parseInt(el.dataset.id);
+    const node = nodes.find(n => n.id === id);
+    if (!node) return;
+    const w = el.offsetWidth, h = el.offsetHeight;
+    _portCache[id] = {
+      out: { x: node.x + w / 2, y: node.y + h },
+      in:  { x: node.x + w / 2, y: node.y }
+    };
+  });
+}
+
+function getPort(nodeId, type) {
+  return (_portCache[nodeId] && _portCache[nodeId][type]) || { x: 0, y: 0 };
+}
+
+// ═══════════════════════════════════════════════════════════
+// BEZIER
+// ═══════════════════════════════════════════════════════════
+function bezier(x1,y1,x2,y2) {
+  const dy = Math.abs(y2-y1);
+  const cp = Math.max(50, Math.min(dy*0.5, 200));
+  return `M${x1},${y1} C${x1},${y1+cp} ${x2},${y2-cp} ${x2},${y2}`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDERING
+// ═══════════════════════════════════════════════════════════
+function render() {
+  renderNodes();
+  requestAnimationFrame(() => {
+    cachePortPositions();
+    renderLinks();
+    renderConnDeleteBtns();
+    updateStats();
+  });
+}
+
+function renderNodes() {
+  canvas.innerHTML = '';
+  const hidden = getCollapsedChildIds();
+
+  nodes.forEach(node => {
+    if (hidden.has(node.id)) return;
+    const el = document.createElement('div');
+    el.className = `node node-${node.type}`;
+    if (node.pillar) el.classList.add(`pillar-${node.pillar}`);
+    if (node.status) el.classList.add(`status-${node.status}`);
+    if (selectedNodeIds.has(node.id)) el.classList.add('selected');
+    el.dataset.id = node.id;
+    el.style.left = node.x + 'px';
+    el.style.top = node.y + 'px';
+
+    const intLinks = links.filter(l => l.source === node.id || l.target === node.id).length;
+
+    let html = '';
+    if (node.type === 'domain') {
+      html += `<div class="node-title">${esc(node.title)}</div>`;
+      if (node.subtitle) html += `<div class="node-subtitle">${esc(node.subtitle)}</div>`;
+    } else {
+      html += `<div class="node-title">${esc(node.title)}</div>`;
+      html += `<div class="node-meta">`;
+      if (node.type !== 'branch') {
+        html += `<div class="node-meta-row"><span class="label">🎯 KW</span><span class="value ${node.keyword?'':'empty'}">${node.keyword ? esc(node.keyword) : 'not set'}</span></div>`;
+        html += `<div class="node-meta-row"><span class="label">🔗 Link</span><span class="value ${node.url?'':'empty'}">${node.url ? esc(node.url) : 'not set'}</span></div>`;
+        html += `<div class="node-meta-row"><span class="label">📂 Pillar</span>${node.pillar ? `<span class="pillar-tag t-${node.pillar}">${PILLAR_LABELS[node.pillar] || node.pillar}</span>` : `<span class="value empty">not set</span>`}</div>`;
+        html += `<div class="node-meta-row"><span class="label">📌 Status</span>${node.status ? `<span class="status-tag s-${node.status}">${STATUS_LABELS[node.status] || node.status}</span>` : `<span class="value empty">not set</span>`}</div>`;
+        html += `<div class="node-meta-row"><span class="label">📅 Updated</span><span class="value ${node.lastUpdated?'':'empty'}">${node.lastUpdated ? esc(node.lastUpdated) : 'not set'}</span></div>`;
+      }
+      html += `</div>`;
+    }
+
+    if (node.type === 'branch' || node.type === 'pillar') {
+      html += `<div class="node-actions"><button class="btn btn-sm" onclick="event.stopPropagation();toggleCollapse(${node.id})">${node.collapsed?'▶ Expand':'▼ Collapse'}</button></div>`;
+    }
+    html += `<div class="node-actions"><button class="btn btn-sm" onclick="event.stopPropagation();openContextForNode(${node.id},event)">⋯</button></div>`;
+
+    el.innerHTML = html;
+
+    const portOut = document.createElement('div');
+    portOut.className = 'port port-out';
+    portOut.title = 'Drag to connect →';
+    portOut.addEventListener('mousedown', e => { e.stopPropagation(); e.preventDefault(); startConnect(node.id, e); });
+    el.appendChild(portOut);
+
+    const portIn = document.createElement('div');
+    portIn.className = 'port port-in';
+    portIn.title = '← Drop connection here';
+    portIn.dataset.nodeId = node.id;
+    el.appendChild(portIn);
+
+    if (intLinks > 0) {
+      const badge = document.createElement('div');
+      badge.className = 'link-badge';
+      badge.textContent = intLinks;
+      el.appendChild(badge);
+    }
+
+    el.addEventListener('mousedown', e => onNodeMouseDown(e, node));
+    el.addEventListener('contextmenu', e => onNodeContext(e, node));
+    el.addEventListener('click', e => onNodeClick(e, node));
+    el.addEventListener('dblclick', e => {
+      e.stopPropagation();
+      selectedNodeIds.clear();
+      selectedNodeIds.add(node.id);
+      renderNodes();
+      editNode();
+    });
+
+    canvas.appendChild(el);
+  });
+}
+
+function getCollapsedChildIds() {
+  const hidden = new Set();
+  function hide(srcId) {
+    links.forEach(l => {
+      if (l.source === srcId && !hidden.has(l.target)) {
+        hidden.add(l.target);
+        hide(l.target);
+      }
+    });
+  }
+  nodes.filter(n => n.collapsed).forEach(n => hide(n.id));
+  return hidden;
+}
+
+function renderLinks() {
+  svgEl.innerHTML = '';
+  const hidden = getCollapsedChildIds();
+
+  links.forEach(link => {
+    if (hidden.has(link.source) || hidden.has(link.target)) return;
+    const s = getPort(link.source, 'out');
+    const t = getPort(link.target, 'in');
+    if (s.x===0 && s.y===0) return;
+    if (t.x===0 && t.y===0) return;
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d', bezier(s.x, s.y, t.x, t.y));
+    const sn = nodes.find(n=>n.id===link.source);
+    const tn = nodes.find(n=>n.id===link.target);
+    const p = (tn&&tn.pillar)||(sn&&sn.pillar)||'';
+    path.setAttribute('stroke', PILLAR_COLORS[p]||PILLAR_COLORS['']);
+    path.classList.add('conn-path');
+    svgEl.appendChild(path);
+  });
+}
+
+function renderConnDeleteBtns() {
+  connDelLayer.innerHTML = '';
+  const hidden = getCollapsedChildIds();
+
+  links.forEach(link => {
+    if (hidden.has(link.source) || hidden.has(link.target)) return;
+    const s = getPort(link.source, 'out');
+    const t = getPort(link.target, 'in');
+    if (s.x===0&&s.y===0) return;
+    if (t.x===0&&t.y===0) return;
+
+    const mx = (s.x + t.x) / 2;
+    const my = (s.y + t.y) / 2;
+
+    const btn = document.createElement('div');
+    btn.className = 'conn-del';
+    btn.textContent = '✕';
+    btn.title = 'Remove this connection';
+    btn.style.left = mx + 'px';
+    btn.style.top = my + 'px';
+    btn.style.transform = 'translate(-50%,-50%)';
+    btn.style.opacity = '0';
+    btn.addEventListener('mouseenter', ()=> btn.style.opacity='1');
+    btn.addEventListener('mouseleave', ()=> btn.style.opacity='0');
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      links = links.filter(l => l.id !== link.id);
+      toast('Connection removed', 'info');
+      render();
+    });
+
+    connDelLayer.appendChild(btn);
+  });
+}
+
+canvasWrap.addEventListener('mousemove', (e) => {
+  if (isConnecting) { updateTempLine(e); return; }
+  const rect = canvasWrap.getBoundingClientRect();
+  const mx = (e.clientX - rect.left - viewX) / zoom;
+  const my = (e.clientY - rect.top - viewY) / zoom;
+  connDelLayer.querySelectorAll('.conn-del').forEach(btn => {
+    const bx = parseFloat(btn.style.left);
+    const by = parseFloat(btn.style.top);
+    const dist = Math.hypot(bx-mx, by-my);
+    btn.style.opacity = dist < 40 ? '0.85' : '0';
+  });
+});
+
+function updateStats() {
+  document.getElementById('stat-pages').textContent = nodes.filter(n => n.type==='page').length;
+  document.getElementById('stat-posts').textContent = nodes.filter(n => n.type==='post'||n.type==='success').length;
+  document.getElementById('stat-links').textContent = links.length;
+}
+
+// ═══════════════════════════════════════════════════════════
+// TRANSFORM
+// ═══════════════════════════════════════════════════════════
+function applyTransform() {
+  const t = `translate(${viewX}px, ${viewY}px) scale(${zoom})`;
+  canvas.style.transform = t;
+  svgEl.style.transform = t;
+  connDelLayer.style.transform = t;
+  document.getElementById('zoom-display').textContent = Math.round(zoom*100)+'%';
+}
+
+function zoomIn(){ zoom=Math.min(zoom*1.2,3); applyTransform(); }
+function zoomOut(){ zoom=Math.max(zoom/1.2,0.1); applyTransform(); }
+function resetView(){ zoom=1; viewX=0; viewY=0; applyTransform(); }
+
+function fitAll() {
+  if(!nodes.length) return;
+  const xs=nodes.map(n=>n.x), ys=nodes.map(n=>n.y);
+  const minX=Math.min(...xs)-180, maxX=Math.max(...xs)+380;
+  const minY=Math.min(...ys)-100, maxY=Math.max(...ys)+280;
+  const w=maxX-minX, h=maxY-minY;
+  const vw=canvasWrap.clientWidth, vh=canvasWrap.clientHeight;
+  zoom=Math.min(vw/w, vh/h, 1.5)*0.85;
+  viewX=(vw-w*zoom)/2-minX*zoom;
+  viewY=(vh-h*zoom)/2-minY*zoom;
+  applyTransform();
+}
+
+// ═══════════════════════════════════════════════════════════
+// CONNECTION DRAGGING
+// ═══════════════════════════════════════════════════════════
+function startConnect(srcId, e) {
+  isConnecting = true;
+  connectSourceId = srcId;
+  canvasWrap.classList.add('connecting');
+  document.getElementById('connect-banner').classList.add('show');
+
+  const srcPort = canvas.querySelector(`[data-id="${srcId}"] .port-out`);
+  if (srcPort) srcPort.classList.add('active');
+  canvas.querySelectorAll('.port-in').forEach(p => {
+    if (parseInt(p.dataset.nodeId) !== srcId) p.classList.add('glow');
+  });
+
+  const s = getPort(srcId, 'out');
+  tempLineEl = document.createElementNS('http://www.w3.org/2000/svg','path');
+  tempLineEl.classList.add('conn-temp');
+  tempLineEl.setAttribute('stroke','#818cf8');
+  tempLineEl.setAttribute('d', bezier(s.x,s.y,s.x,s.y));
+  svgEl.appendChild(tempLineEl);
+}
+
+function updateTempLine(e) {
+  if (!isConnecting||!tempLineEl) return;
+  const s = getPort(connectSourceId, 'out');
+  const rect = canvasWrap.getBoundingClientRect();
+  const mx = (e.clientX - rect.left - viewX) / zoom;
+  const my = (e.clientY - rect.top - viewY) / zoom;
+  tempLineEl.setAttribute('d', bezier(s.x,s.y,mx,my));
+
+  const target = document.elementFromPoint(e.clientX, e.clientY);
+  canvas.querySelectorAll('.node').forEach(el => {
+    el.classList.toggle('drop-target', el===target?.closest('.node') && parseInt(el.dataset.id)!==connectSourceId);
+  });
+}
+
+function endConnect(e) {
+  if (!isConnecting) return;
+  const target = document.elementFromPoint(e.clientX, e.clientY);
+  let targetId = null;
+  if (target && target.classList.contains('port-in')) {
+    targetId = parseInt(target.dataset.nodeId);
+  } else if (target) {
+    const nodeEl = target.closest('.node');
+    if (nodeEl) targetId = parseInt(nodeEl.dataset.id);
+  }
+
+  if (targetId && targetId !== connectSourceId) {
+    const exists = links.some(l => l.source===connectSourceId && l.target===targetId);
+    if (!exists) {
+      links.push({ id:nextLinkId++, source:connectSourceId, target:targetId });
+      toast('🔗 Connected!', 'success');
+    } else {
+      toast('This exact connection already exists', 'info');
+    }
+  }
+  cancelConnect();
+  render();
+}
+
+function cancelConnect() {
+  isConnecting = false;
+  connectSourceId = null;
+  canvasWrap.classList.remove('connecting');
+  document.getElementById('connect-banner').classList.remove('show');
+  if (tempLineEl) { tempLineEl.remove(); tempLineEl=null; }
+  canvas.querySelectorAll('.port-out.active').forEach(p=>p.classList.remove('active'));
+  canvas.querySelectorAll('.port-in.glow').forEach(p=>p.classList.remove('glow'));
+  canvas.querySelectorAll('.node.drop-target').forEach(el=>el.classList.remove('drop-target'));
+}
+
+// ═══════════════════════════════════════════════════════════
+// CANVAS PAN / ZOOM / LASSO
+// ═══════════════════════════════════════════════════════════
+canvasWrap.addEventListener('mousedown', e => {
+  if (e.target===canvasWrap || e.target===svgEl || e.target.tagName==='svg') {
+    if (isConnecting) return;
+    
+    const rect = canvasWrap.getBoundingClientRect();
+    if (e.shiftKey) {
+      // Start lasso
+      isLassoing = true;
+      lassoStartX = e.clientX - rect.left;
+      lassoStartY = e.clientY - rect.top;
+      lassoEl.style.left = lassoStartX + 'px';
+      lassoEl.style.top = lassoStartY + 'px';
+      lassoEl.style.width = '0px';
+      lassoEl.style.height = '0px';
+      lassoEl.style.display = 'block';
+      canvasWrap.classList.add('lassoing');
+      
+      // Clear selection if not holding ctrl/cmd too
+      if (!e.metaKey && !e.ctrlKey) {
+        selectedNodeIds.clear();
+        renderNodes();
+      }
+    } else {
+      // Start pan
+      isDraggingCanvas = true;
+      dragStartX = e.clientX-viewX;
+      dragStartY = e.clientY-viewY;
+      canvasWrap.classList.add('grabbing');
+      selectedNodeIds.clear(); // Clear selection on canvas click
+      renderNodes();
+    }
+    closeContextMenu();
+  }
+});
+
+canvasWrap.addEventListener('mousemove', e => {
+  if (isLassoing) {
+    const rect = canvasWrap.getBoundingClientRect();
+    const currX = e.clientX - rect.left;
+    const currY = e.clientY - rect.top;
+    
+    const x = Math.min(lassoStartX, currX);
+    const y = Math.min(lassoStartY, currY);
+    const w = Math.abs(currX - lassoStartX);
+    const h = Math.abs(currY - lassoStartY);
+    
+    lassoEl.style.left = x + 'px';
+    lassoEl.style.top = y + 'px';
+    lassoEl.style.width = w + 'px';
+    lassoEl.style.height = h + 'px';
+  }
+  else if (isDraggingCanvas) {
+    viewX = e.clientX-dragStartX;
+    viewY = e.clientY-dragStartY;
+    applyTransform();
+  }
+  else if (isDraggingNode && dragGroup.length > 0) {
+    const rect = canvasWrap.getBoundingClientRect();
+    const curX = (e.clientX - rect.left - viewX)/zoom;
+    const curY = (e.clientY - rect.top - viewY)/zoom;
+    
+    dragGroup.forEach(d => {
+      d.node.x = Math.round(curX - d.offX);
+      d.node.y = Math.round(curY - d.offY);
+      const el = canvas.querySelector(`[data-id="${d.node.id}"]`);
+      if (el) { el.style.left = d.node.x+'px'; el.style.top = d.node.y+'px'; }
+    });
+    
+    cachePortPositions();
+    renderLinks();
+    renderConnDeleteBtns();
+  }
+});
+
+canvasWrap.addEventListener('mouseup', e => {
+  if (isConnecting) { endConnect(e); return; }
+  
+  if (isLassoing) {
+    isLassoing = false;
+    lassoEl.style.display = 'none';
+    canvasWrap.classList.remove('lassoing');
+    
+    // Calculate selection
+    const rect = canvasWrap.getBoundingClientRect();
+    const endX = e.clientX - rect.left;
+    const endY = e.clientY - rect.top;
+    
+    const x1 = (Math.min(lassoStartX, endX) - viewX) / zoom;
+    const x2 = (Math.max(lassoStartX, endX) - viewX) / zoom;
+    const y1 = (Math.min(lassoStartY, endY) - viewY) / zoom;
+    const y2 = (Math.max(lassoStartY, endY) - viewY) / zoom;
+    
+    let selectedCount = 0;
+    nodes.forEach(n => {
+      // rough bounding box of node (assume 200x80 size for intersection)
+      if (n.x + 200 > x1 && n.x < x2 && n.y + 80 > y1 && n.y < y2) {
+        selectedNodeIds.add(n.id);
+        selectedCount++;
+      }
+    });
+    if(selectedCount > 0) toast(`Selected ${selectedCount} node(s)`, 'info');
+    renderNodes();
+  }
+  
+  if (isDraggingCanvas) { isDraggingCanvas=false; canvasWrap.classList.remove('grabbing'); }
+  if (isDraggingNode) { isDraggingNode=false; dragGroup=[]; }
+});
+
+document.addEventListener('mouseup', e => { if (isConnecting) endConnect(e); });
+
+canvasWrap.addEventListener('wheel', e => {
+  e.preventDefault();
+  const factor = e.deltaY>0?0.92:1.08;
+  const rect = canvasWrap.getBoundingClientRect();
+  const mx = e.clientX-rect.left;
+  const my = e.clientY-rect.top;
+  const nz = Math.max(0.1, Math.min(3, zoom*factor));
+  viewX = mx-(mx-viewX)*(nz/zoom);
+  viewY = my-(my-viewY)*(nz/zoom);
+  zoom = nz;
+  applyTransform();
+}, {passive:false});
+
+// ═══════════════════════════════════════════════════════════
+// NODE INTERACTIONS
+// ═══════════════════════════════════════════════════════════
+function onNodeMouseDown(e, node) {
+  if (e.button!==0||isConnecting) return;
+  if (e.target.classList.contains('port')) return;
+  e.stopPropagation();
+  
+  // If clicking an unselected node without modifiers, clear selection and select it
+  if (!selectedNodeIds.has(node.id) && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
+    selectedNodeIds.clear();
+    selectedNodeIds.add(node.id);
+    renderNodes();
+  }
+  // If holding modifier on unselected node, add to selection
+  else if (!selectedNodeIds.has(node.id) && (e.shiftKey || e.metaKey || e.ctrlKey)) {
+    selectedNodeIds.add(node.id);
+    renderNodes();
+  }
+  
+  isDraggingNode = true;
+  dragGroup = [];
+  
+  const rect = canvasWrap.getBoundingClientRect();
+  const mX = (e.clientX - rect.left - viewX) / zoom;
+  const mY = (e.clientY - rect.top - viewY) / zoom;
+  
+  // Add all selected nodes to drag group
+  selectedNodeIds.forEach(id => {
+    const n = nodes.find(x => x.id === id);
+    if (n) {
+      dragGroup.push({
+        node: n,
+        offX: mX - n.x,
+        offY: mY - n.y
+      });
+    }
+  });
+}
+
+function onNodeClick(e, node) {
+  if (e.target.classList.contains('port')) return;
+  e.stopPropagation();
+  
+  if (e.shiftKey || e.metaKey || e.ctrlKey) {
+    // Toggle selection
+    if (selectedNodeIds.has(node.id)) {
+      selectedNodeIds.delete(node.id);
+    } else {
+      selectedNodeIds.add(node.id);
+    }
+  } else {
+    // Single select
+    selectedNodeIds.clear();
+    selectedNodeIds.add(node.id);
+  }
+  render();
+}
+
+function onNodeContext(e, node) {
+  e.preventDefault(); e.stopPropagation();
+  // If right-clicked node isn't selected, select only it
+  if (!selectedNodeIds.has(node.id)) {
+    selectedNodeIds.clear();
+    selectedNodeIds.add(node.id);
+    renderNodes();
+  }
+  rightClickedNodeId = node.id;
+  
+  // Update context menu labels based on selection count
+  const menuLabels = document.querySelectorAll('.context-menu-item');
+  const count = selectedNodeIds.size;
+  if (count > 1) {
+    menuLabels[0].style.display = 'none'; // hide edit for multiple
+    menuLabels[1].innerHTML = `📋 Duplicate (${count})`;
+    menuLabels[2].innerHTML = `🔌 Disconnect All (${count})`;
+    menuLabels[3].innerHTML = `🗑️ Delete Nodes (${count})`;
+  } else {
+    menuLabels[0].style.display = 'flex';
+    menuLabels[1].innerHTML = `📋 Duplicate`;
+    menuLabels[2].innerHTML = `🔌 Disconnect All`;
+    menuLabels[3].innerHTML = `🗑️ Delete Node`;
+  }
+  
+  showContextMenu(e.clientX, e.clientY);
+}
+
+function openContextForNode(nodeId, e) {
+  if(e) e.stopPropagation();
+  const node = nodes.find(n => n.id === nodeId);
+  if(node) onNodeContext(e, node);
+  const el = canvas.querySelector(`[data-id="${nodeId}"]`);
+  if(el){const r=el.getBoundingClientRect();showContextMenu(r.right+5,r.top+10);}
+}
+
+// ═══════════════════════════════════════════════════════════
+// CONTEXT MENU
+// ═══════════════════════════════════════════════════════════
+const ctxMenu = document.getElementById('context-menu');
+function showContextMenu(x,y){
+  if(x+200>window.innerWidth) x=window.innerWidth-210;
+  if(y+180>window.innerHeight) y=window.innerHeight-190;
+  ctxMenu.style.left=x+'px'; ctxMenu.style.top=y+'px'; ctxMenu.classList.add('show');
+}
+function closeContextMenu(){ ctxMenu.classList.remove('show'); }
+document.addEventListener('click', e=>{ if(!ctxMenu.contains(e.target)) closeContextMenu(); });
+
+// ═══════════════════════════════════════════════════════════
+// PANEL — ADD / EDIT
+// ═══════════════════════════════════════════════════════════
+let editingNodeId = null;
+
+function addNodePanel(type) {
+  editingNodeId=null;
+  document.getElementById('panel-title').textContent='Add Node';
+  document.getElementById('panel-save').textContent='Add Node';
+  document.getElementById('form-type').value=type||'post';
+  document.getElementById('form-title').value='';
+  document.getElementById('form-keyword').value='';
+  document.getElementById('form-url').value='';
+  document.getElementById('form-pillar').value='';
+  document.getElementById('form-intent').value='';
+  document.getElementById('form-status').value='';
+  document.getElementById('form-lastUpdated').value='';
+  document.getElementById('form-notes').value='';
+  clearFieldError();
+  openPanel();
+}
+
+function editNode() {
+  closeContextMenu();
+  // Only edit if exactly 1 node is selected, or use the rightClickedNodeId
+  const idToEdit = selectedNodeIds.size === 1 ? Array.from(selectedNodeIds)[0] : rightClickedNodeId;
+  const node = nodes.find(n=>n.id===idToEdit);
+  if(!node) return;
+  
+  editingNodeId=node.id;
+  document.getElementById('panel-title').textContent='Edit Node';
+  document.getElementById('panel-save').textContent='Save Changes';
+  document.getElementById('form-type').value=node.type;
+  document.getElementById('form-title').value=node.title;
+  document.getElementById('form-keyword').value=node.keyword||'';
+  document.getElementById('form-url').value=node.url||'';
+  document.getElementById('form-pillar').value=node.pillar||'';
+  document.getElementById('form-intent').value=node.intent||'';
+  document.getElementById('form-status').value=node.status||'';
+  document.getElementById('form-lastUpdated').value=node.lastUpdated||'';
+  document.getElementById('form-notes').value=node.notes||'';
+  clearFieldError();
+  openPanel();
+}
+
+function saveNode() {
+  const type = document.getElementById('form-type').value;
+  const title = document.getElementById('form-title').value.trim();
+  const keyword = document.getElementById('form-keyword').value.trim().toLowerCase();
+  const url = document.getElementById('form-url').value.trim();
+  const pillar = document.getElementById('form-pillar').value;
+  const intent = document.getElementById('form-intent').value;
+  const status = document.getElementById('form-status').value;
+  const lastUpdated = document.getElementById('form-lastUpdated').value;
+  const notes = document.getElementById('form-notes').value.trim();
+
+  if (!title) { toast('Title is required','error'); return; }
+
+  if (keyword) {
+    const dup = nodes.find(n => n.keyword && n.keyword.toLowerCase()===keyword && n.id !== editingNodeId);
+    if (dup) {
+      document.getElementById('form-keyword').classList.add('error');
+      const errEl = document.getElementById('keyword-error');
+      errEl.textContent = `⚠ "${keyword}" is already used by: ${dup.title}`;
+      errEl.classList.add('show');
+      toast(`Focus keyword "${keyword}" already exists on "${dup.title}"`, 'error');
+      return;
+    }
+  }
+  clearFieldError();
+
+  if (editingNodeId) {
+    const node = nodes.find(n=>n.id===editingNodeId);
+    if(node){ node.type=type; node.title=title; node.keyword=keyword; node.url=url; node.pillar=pillar; node.intent=intent; node.status=status; node.lastUpdated=lastUpdated; node.notes=notes; }
+    toast('Node updated','success');
+  } else {
+    const cx=(canvasWrap.clientWidth/2-viewX)/zoom;
+    const cy=(canvasWrap.clientHeight/2-viewY)/zoom;
+    nodes.push({
+      id:nextId++, type, title, url, keyword, intent, pillar, status, lastUpdated, notes,
+      x:Math.round(cx+(Math.random()*100-50)),
+      y:Math.round(cy+(Math.random()*100-50)),
+      collapsed:false
+    });
+    toast('Node added! Drag from output port to connect.','success');
+  }
+  closePanel();
+  render();
+}
+
+function clearFieldError() {
+  document.getElementById('form-keyword').classList.remove('error');
+  document.getElementById('keyword-error').classList.remove('show');
+}
+
+function duplicateNode() {
+  closeContextMenu();
+  if (selectedNodeIds.size === 0) return;
+  
+  const idMap = new Map();
+  const newSelection = new Set();
+  
+  // Duplicate nodes
+  selectedNodeIds.forEach(id => {
+    const n = nodes.find(x => x.id === id);
+    if (n) {
+      const newId = nextId++;
+      idMap.set(id, newId);
+      nodes.push({...n, id:newId, x:n.x+60, y:n.y+60, title:n.title+' (copy)', keyword:n.keyword?n.keyword+'-copy':''});
+      newSelection.add(newId);
+    }
+  });
+  
+  // Duplicate internal connections between the duplicated nodes
+  const oldIdsArray = Array.from(selectedNodeIds);
+  links.forEach(l => {
+    if (selectedNodeIds.has(l.source) && selectedNodeIds.has(l.target)) {
+      links.push({ id:nextLinkId++, source:idMap.get(l.source), target:idMap.get(l.target) });
+    }
+  });
+  
+  selectedNodeIds = newSelection;
+  toast(`Duplicated ${idMap.size} node(s)`, 'success');
+  render();
+}
+
+function deleteNode() {
+  closeContextMenu();
+  if (selectedNodeIds.size === 0) return;
+  
+  nodes = nodes.filter(n => !selectedNodeIds.has(n.id));
+  links = links.filter(l => !selectedNodeIds.has(l.source) && !selectedNodeIds.has(l.target));
+  
+  const count = selectedNodeIds.size;
+  selectedNodeIds.clear();
+  toast(`Deleted ${count} node(s)`, 'info');
+  render();
+}
+
+function disconnectAll() {
+  closeContextMenu();
+  if (selectedNodeIds.size === 0) return;
+  
+  const beforeCount = links.length;
+  links = links.filter(l => !selectedNodeIds.has(l.source) && !selectedNodeIds.has(l.target));
+  const removed = beforeCount - links.length;
+  
+  toast(`Removed ${removed} connection(s)`, 'info');
+  render();
+}
+
+function openPanel(){ document.getElementById('panel').classList.add('open'); document.getElementById('overlay').classList.add('show'); }
+function closePanel(){ document.getElementById('panel').classList.remove('open'); document.getElementById('overlay').classList.remove('show'); }
+
+// ═══════════════════════════════════════════════════════════
+// COLLAPSE
+// ═══════════════════════════════════════════════════════════
+function toggleCollapse(id){ const n=nodes.find(n=>n.id===id); if(n){n.collapsed=!n.collapsed; render();} }
+function toggleCollapseAll(){ allCollapsed=!allCollapsed; nodes.filter(n=>n.type==='branch'||n.type==='pillar').forEach(n=>n.collapsed=allCollapsed); render(); }
+
+// ═══════════════════════════════════════════════════════════
+// AUTO LAYOUT
+// ═══════════════════════════════════════════════════════════
+function autoLayout() {
+  const root=nodes.find(n=>n.type==='domain');
+  if(!root) return;
+  root.x=2000; root.y=100;
+  const children={};
+  links.forEach(l=>{ if(!children[l.source]) children[l.source]=[]; children[l.source].push(l.target); });
+  function lay(pid,cx,y,sp){
+    const kids=children[pid]||[];
+    const tw=kids.length*sp;
+    const bx=cx-tw/2+sp/2;
+    kids.forEach((kid,i)=>{
+      const n=nodes.find(n=>n.id===kid);
+      if(!n) return;
+      n.x=bx+i*sp; n.y=y;
+      lay(kid,n.x,y+280,Math.max(sp*0.65,220));
+    });
+  }
+  lay(root.id,root.x,root.y+300,650);
+  render();
+  setTimeout(fitAll,60);
+  toast('Layout reorganized','success');
+}
+
+// ═══════════════════════════════════════════════════════════
+// SEARCH
+// ═══════════════════════════════════════════════════════════
+document.getElementById('search').addEventListener('input', e => {
+  const q=e.target.value.toLowerCase();
+  canvas.querySelectorAll('.node').forEach(el=>{
+    const n=nodes.find(n=>n.id===parseInt(el.dataset.id));
+    if(!n) return;
+    if(q===''){el.style.opacity='1';el.style.filter='';}
+    else if(n.title.toLowerCase().includes(q)||(n.url&&n.url.toLowerCase().includes(q))||(n.keyword&&n.keyword.toLowerCase().includes(q))){
+      el.style.opacity='1';el.style.filter='drop-shadow(0 0 8px rgba(99,102,241,.5))';
+    } else {el.style.opacity='0.15';el.style.filter='';}
+  });
+});
+
+// ═══════════════════════════════════════════════════════════
+// KEYBOARD
+// ═══════════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if(e.key==='Escape'){ if(isConnecting)cancelConnect(); closeContextMenu(); closePanel(); }
+  if((e.key==='Delete'||e.key==='Backspace')&&selectedNodeIds.size>0&&!document.querySelector('.panel.open')){
+    if(document.activeElement.tagName==='INPUT'||document.activeElement.tagName==='TEXTAREA') return;
+    e.preventDefault(); deleteNode();
+  }
+  
+  // Select All
+  if ((e.metaKey || e.ctrlKey) && e.key === 'a' && !document.querySelector('.panel.open') && document.activeElement.tagName !== 'INPUT') {
+    e.preventDefault();
+    nodes.forEach(n => selectedNodeIds.add(n.id));
+    renderNodes();
+    toast(`Selected all ${nodes.length} nodes`, 'info');
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// EXPORT / IMPORT
+// ═══════════════════════════════════════════════════════════
+function exportData(){
+  const d=JSON.stringify({nodes,links,nextId,nextLinkId,exportDate:new Date().toISOString()},null,2);
+  const blob=new Blob([d],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;
+  a.download=`seamlesssource-sitemap-${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); URL.revokeObjectURL(url);
+  toast('Exported!','success');
+}
+
+function importData(){ document.getElementById('file-import').click(); }
+function handleImport(e){
+  const file=e.target.files[0]; if(!file) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const d=JSON.parse(ev.target.result);
+      nodes=d.nodes||[]; links=d.links||[];
+      nextId=d.nextId||nodes.reduce((m,n)=>Math.max(m,n.id),0)+1;
+      nextLinkId=d.nextLinkId||links.reduce((m,l)=>Math.max(m,l.id||0),0)+1;
+      nodes.forEach(n=>{if(n.keyword===undefined)n.keyword='';if(n.intent===undefined)n.intent='';if(n.status===undefined)n.status='';if(n.lastUpdated===undefined)n.lastUpdated='';});
+      links.forEach(l=>{if(!l.id)l.id=nextLinkId++;});
+      selectedNodeIds.clear();
+      render(); fitAll();
+      toast('Imported!','success');
+    }catch(err){toast('Invalid file','error');}
+  };
+  r.readAsText(file); e.target.value='';
+}
+
+// ═══════════════════════════════════════════════════════════
+// TOAST / UTIL
+// ═══════════════════════════════════════════════════════════
+function toast(msg,type='info'){
+  const c=document.getElementById('toast-container');
+  const el=document.createElement('div'); el.className=`toast ${type}`; el.textContent=msg;
+  c.appendChild(el); setTimeout(()=>el.remove(),3000);
+}
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+async function init(){
+  connDelLayer.style.position='absolute';
+  connDelLayer.style.top='0';
+  connDelLayer.style.left='0';
+  connDelLayer.style.transformOrigin='0 0';
+  connDelLayer.style.pointerEvents='none';
+  connDelLayer.querySelectorAll('.conn-del') && (connDelLayer.style.zIndex='3');
+
+  const hasData = await loadState();
+  if(!hasData){
+    const {data,nid,nlid}=getDefaultData();
+    nodes=data.nodes; links=data.links; nextId=nid; nextLinkId=nlid;
+    // Auto-save the default data to DB once generated
+    await saveState();
+  }
+  render();
+  applyTransform();
+  setTimeout(fitAll,120);
+}
+
+init();
+</script>
+</body>
+</html>
