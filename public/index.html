@@ -349,6 +349,7 @@
     <button class="btn" onclick="exportData()">⬇️ Export</button>
     <button class="btn" onclick="importData()">📂 Import</button>
     <button class="btn" onclick="resetView()">🏠 Reset</button>
+    <button class="btn" style="background:var(--rose-dim)" onclick="logout()">🚪 Logout</button>
   </div>
 </header>
 
@@ -676,6 +677,15 @@ async function manualSave() {
   if (btn) btn.innerText = originalText;
   if (success) {
     toast('Saved to database successfully!', 'success');
+  }
+}
+
+async function logout() {
+  try {
+    await fetch('/api/logout', { method: 'POST' });
+    window.location.href = '/login.html';
+  } catch (e) {
+    toast('Logout failed', 'error');
   }
 }
 

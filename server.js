@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { URL } = require('url');
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const DATA_DIR = path.join(__dirname, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'sitemap.json');
@@ -46,11 +46,46 @@ function safeJsonParse(body) {
   }
 }
 
+function isAuthenticated(req) {
+  const cookies = req.headers.cookie;
+  if (!cookies) return false;
+  return cookies.includes('auth_token=true');
+}
+
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const { pathname } = url;
 
+  if (pathname === '/api/login' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      const data = safeJsonParse(body);
+      const masterPassword = process.env.PASSWORD || 'seamless123';
+      if (data && data.password === masterPassword) {
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Set-Cookie': 'auth_token=true; Path=/; HttpOnly; Max-Age=2592000'
+        });
+        res.end(JSON.stringify({ ok: true }));
+      } else {
+        send(res, 401, JSON.stringify({ error: 'Invalid password' }), 'application/json');
+      }
+    });
+    return;
+  }
+
+  if (pathname === '/api/logout' && req.method === 'POST') {
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Set-Cookie': 'auth_token=; Path=/; HttpOnly; Max-Age=0'
+    });
+    res.end(JSON.stringify({ ok: true }));
+    return;
+  }
+
   if (pathname === '/api/sitemap') {
+    if (!isAuthenticated(req)) return send(res, 401, JSON.stringify({ error: 'Unauthorized' }), 'application/json');
     if (req.method === 'GET') {
       const data = readJsonFile(DATA_FILE, { nodes: [], links: [] });
       return send(res, 200, JSON.stringify(data), 'application/json; charset=utf-8');
@@ -74,6 +109,18 @@ const server = http.createServer((req, res) => {
     }
 
     return send(res, 405, 'Method Not Allowed');
+  }
+
+  // Authentication check for static files (only index.html needs protection)
+  const isProtectedPath = pathname === '/' || pathname === '/index.html';
+  if (isProtectedPath && !isAuthenticated(req)) {
+    res.writeHead(302, { 'Location': '/login.html' });
+    return res.end();
+  }
+  
+  if (pathname === '/login.html' && isAuthenticated(req)) {
+    res.writeHead(302, { 'Location': '/' });
+    return res.end();
   }
 
   let filePath = path.join(PUBLIC_DIR, pathname === '/' ? 'index.html' : pathname);
