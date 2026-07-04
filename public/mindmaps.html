@@ -1,0 +1,2150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seamless Source — Mind Map Builder</title>
+<meta name="description" content="Create and manage mind maps — freeform, radial, org charts, flowcharts, SWOT analysis, timelines and more.">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════
+   DESIGN SYSTEM — Shared with sitemap editor
+   ═══════════════════════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a12;--surface:#12121e;--surface-2:#1a1a2e;--surface-3:#22223a;
+  --border:#2a2a44;--border-glow:#6366f150;
+  --text:#e2e8f0;--text-muted:#94a3b8;--text-dim:#64748b;
+  --accent:#818cf8;--accent-bright:#a5b4fc;--accent-dim:#4f46e5;
+  --green:#34d399;--green-dim:#065f46;
+  --amber:#fbbf24;--amber-dim:#78350f;
+  --rose:#fb7185;--rose-dim:#9f1239;
+  --cyan:#22d3ee;--cyan-dim:#155e75;
+  --purple:#c084fc;--purple-dim:#581c87;
+  --orange:#fb923c;--orange-dim:#7c2d12;
+  --teal:#2dd4bf;--teal-dim:#134e4a;
+  --radius:12px;--radius-sm:8px;--radius-xs:6px;
+  --shadow:0 4px 24px rgba(0,0,0,.4);
+  --shadow-lg:0 8px 40px rgba(0,0,0,.6);
+  --sidebar-w:280px;
+}
+html{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow:hidden;height:100%}
+body{height:100%;display:flex;flex-direction:column}
+
+/* ── Header ── */
+header{
+  background:linear-gradient(135deg,var(--surface) 0%,var(--surface-2) 100%);
+  border-bottom:1px solid var(--border);
+  padding:12px 20px;display:flex;align-items:center;gap:14px;
+  flex-shrink:0;z-index:100;position:relative;
+}
+header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent)}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:34px;height:34px;border-radius:10px;
+  background:linear-gradient(135deg,var(--accent-dim),var(--purple));
+  display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff}
+.logo-text{font-size:15px;font-weight:700;letter-spacing:-.3px}
+.logo-text span{color:var(--accent-bright)}
+.header-nav{display:flex;gap:2px;margin-left:16px}
+.header-nav a{
+  padding:6px 14px;border-radius:var(--radius-xs);font-size:12px;font-weight:500;
+  color:var(--text-muted);text-decoration:none;transition:all .2s;
+}
+.header-nav a:hover{color:var(--text);background:var(--surface-3)}
+.header-nav a.active{color:var(--accent-bright);background:var(--surface-3)}
+.header-actions{margin-left:auto;display:flex;gap:6px;align-items:center}
+.save-indicator{font-size:10px;color:var(--green);display:flex;align-items:center;gap:4px;margin-left:8px;opacity:0;transition:opacity .3s}
+.save-indicator.show{opacity:1}
+
+/* ── Buttons ── */
+.btn{
+  padding:7px 14px;border-radius:var(--radius-xs);border:1px solid var(--border);
+  background:var(--surface-2);color:var(--text);font-size:12px;font-weight:500;
+  cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:5px;
+  font-family:inherit;white-space:nowrap;
+}
+.btn:hover{border-color:var(--accent);background:var(--surface-3);transform:translateY(-1px);box-shadow:0 4px 12px rgba(99,102,241,.15)}
+.btn-primary{background:linear-gradient(135deg,var(--accent-dim),#7c3aed);border-color:var(--accent-dim);color:#fff}
+.btn-primary:hover{background:linear-gradient(135deg,#5b21b6,#6d28d9);box-shadow:0 4px 20px rgba(99,102,241,.3)}
+.btn-danger{border-color:var(--rose-dim);color:var(--rose)}
+.btn-danger:hover{background:var(--rose-dim);color:#fff}
+.btn-sm{padding:4px 8px;font-size:10px}
+.btn-ghost{border:none;background:transparent;padding:6px 8px}
+.btn-ghost:hover{background:var(--surface-3);border:none}
+
+/* ── Layout ── */
+.app-body{flex:1;display:flex;overflow:hidden;position:relative}
+
+/* ── Sidebar ── */
+.sidebar{
+  width:var(--sidebar-w);flex-shrink:0;
+  background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;z-index:50;
+  transition:width .3s cubic-bezier(.4,0,.2,1), margin-left .3s cubic-bezier(.4,0,.2,1);
+  overflow:hidden;
+}
+.sidebar.collapsed{width:0;margin-left:0;border-right:none}
+.sidebar-header{
+  padding:14px 16px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+}
+.sidebar-header h3{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted)}
+.sidebar-search{padding:10px 12px;border-bottom:1px solid var(--border);flex-shrink:0}
+.sidebar-search input{
+  width:100%;padding:7px 10px;border-radius:var(--radius-xs);border:1px solid var(--border);
+  background:var(--surface-2);color:var(--text);font-size:11px;font-family:inherit;
+  transition:border-color .2s;
+}
+.sidebar-search input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(99,102,241,.15)}
+.sidebar-list{flex:1;overflow-y:auto;padding:6px}
+.sidebar-item{
+  padding:10px 12px;border-radius:var(--radius-xs);cursor:pointer;
+  display:flex;align-items:center;gap:10px;transition:all .15s;
+  margin-bottom:2px;position:relative;
+}
+.sidebar-item:hover{background:var(--surface-2)}
+.sidebar-item.active{background:var(--surface-3);border-left:3px solid var(--accent)}
+.sidebar-item .map-icon{font-size:18px;flex-shrink:0}
+.sidebar-item .map-info{flex:1;overflow:hidden}
+.sidebar-item .map-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar-item .map-meta{font-size:9px;color:var(--text-dim);margin-top:2px;display:flex;gap:6px;align-items:center}
+.sidebar-item .map-type{
+  padding:1px 5px;border-radius:3px;font-size:8px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.3px;
+  background:var(--accent-dim);color:var(--accent-bright);
+}
+.sidebar-item .map-dots{
+  position:absolute;right:8px;top:50%;transform:translateY(-50%);
+  opacity:0;transition:opacity .15s;cursor:pointer;
+  font-size:14px;color:var(--text-muted);padding:4px;
+}
+.sidebar-item:hover .map-dots{opacity:1}
+.sidebar-footer{padding:10px 12px;border-top:1px solid var(--border);flex-shrink:0}
+
+/* ── Canvas Area ── */
+.canvas-area{flex:1;position:relative;overflow:hidden}
+#canvas-wrap{width:100%;height:100%;position:relative;overflow:hidden;cursor:grab}
+#canvas-wrap.grabbing{cursor:grabbing}
+#canvas-wrap.connecting{cursor:crosshair}
+#canvas-wrap.lassoing{cursor:crosshair}
+#canvas{position:absolute;top:0;left:0;transform-origin:0 0}
+svg#connections{position:absolute;top:0;left:0;overflow:visible;pointer-events:none;z-index:2;width:1px;height:1px}
+
+/* Grid background */
+.grid-bg{
+  position:absolute;inset:0;pointer-events:none;
+  background-image:radial-gradient(circle, var(--border) 1px, transparent 1px);
+  background-size:30px 30px;
+  opacity:.3;
+}
+
+/* ── Lasso ── */
+#lasso{
+  position:absolute;border:1px dashed var(--accent-bright);
+  background:rgba(99,102,241,0.15);z-index:1000;pointer-events:none;display:none;
+}
+
+/* ── SVG Paths ── */
+svg#connections path.conn-path{
+  fill:none;stroke-width:2;opacity:.5;pointer-events:stroke;
+  cursor:pointer;transition:opacity .15s, stroke-width .15s;
+}
+svg#connections path.conn-path:hover{opacity:1;stroke-width:3}
+svg#connections path.conn-temp{fill:none;stroke-width:2.5;opacity:.7;stroke-dasharray:8 4;animation:dashFlow .4s linear infinite;pointer-events:none}
+@keyframes dashFlow{to{stroke-dashoffset:-12}}
+
+/* Connection labels */
+.conn-label{
+  position:absolute;font-size:9px;color:var(--text-muted);
+  background:var(--surface);padding:1px 6px;border-radius:3px;
+  border:1px solid var(--border);pointer-events:auto;cursor:pointer;
+  transform:translate(-50%,-50%);z-index:5;white-space:nowrap;
+  transition:all .15s;
+}
+.conn-label:hover{border-color:var(--accent);color:var(--text)}
+
+/* Connection delete */
+.conn-del{
+  position:absolute;width:18px;height:18px;border-radius:50%;
+  background:var(--rose-dim);color:var(--rose);font-size:10px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;z-index:12;border:1.5px solid var(--bg);
+  opacity:0;transition:opacity .15s, transform .12s;pointer-events:auto;line-height:1;
+}
+.conn-del:hover{opacity:1!important;transform:scale(1.3);background:var(--rose);color:#fff}
+
+/* ── Mind Map Nodes ── */
+.mm-node{
+  position:absolute;cursor:move;z-index:10;
+  transition:box-shadow .25s, border-color .25s;
+  user-select:none;
+}
+.mm-node:hover{z-index:20;box-shadow:0 0 20px rgba(99,102,241,.3)}
+.mm-node.selected{box-shadow:0 0 30px rgba(99,102,241,.4)!important;z-index:25}
+.mm-node.drop-target{box-shadow:0 0 25px rgba(52,211,153,.4)!important}
+
+/* Shape: Rectangle */
+.mm-node.shape-rectangle{
+  border-radius:var(--radius-xs);padding:12px 16px;
+  min-width:140px;max-width:280px;border:1.5px solid var(--border);
+  background:var(--surface);
+}
+/* Shape: Rounded */
+.mm-node.shape-rounded{
+  border-radius:20px;padding:12px 20px;
+  min-width:140px;max-width:280px;border:1.5px solid var(--border);
+  background:var(--surface);
+}
+/* Shape: Circle */
+.mm-node.shape-circle{
+  width:100px;height:100px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  text-align:center;border:1.5px solid var(--border);
+  background:var(--surface);padding:10px;
+}
+.mm-node.shape-circle .node-label{font-size:10px}
+/* Shape: Diamond */
+.mm-node.shape-diamond{
+  width:110px;height:110px;
+  transform-style:preserve-3d;
+  border:none;background:transparent;
+  display:flex;align-items:center;justify-content:center;
+}
+.mm-node.shape-diamond .diamond-bg{
+  position:absolute;inset:10px;
+  background:var(--surface);border:1.5px solid var(--border);
+  transform:rotate(45deg);border-radius:6px;
+}
+.mm-node.shape-diamond .node-content{position:relative;z-index:1;text-align:center;padding:8px}
+.mm-node.shape-diamond .node-label{font-size:10px}
+/* Shape: Hexagon */
+.mm-node.shape-hexagon{
+  width:120px;height:104px;
+  clip-path:polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+  background:var(--surface);display:flex;align-items:center;justify-content:center;
+  text-align:center;padding:10px 20px;
+}
+/* Shape: Pill */
+.mm-node.shape-pill{
+  border-radius:50px;padding:10px 24px;
+  min-width:120px;max-width:240px;border:1.5px solid var(--border);
+  background:var(--surface);text-align:center;
+}
+
+.node-content{display:flex;flex-direction:column;gap:2px;align-items:center}
+.node-icon{font-size:18px;margin-bottom:2px}
+.node-label{font-size:12px;font-weight:600;line-height:1.3;word-break:break-word}
+.node-desc{font-size:9px;color:var(--text-muted);line-height:1.3;margin-top:2px}
+
+/* Node actions on hover */
+.mm-node .node-actions-mini{
+  position:absolute;top:-8px;right:-8px;display:flex;gap:2px;
+  opacity:0;transition:opacity .15s;z-index:20;
+}
+.mm-node:hover .node-actions-mini{opacity:1}
+.node-action-btn{
+  width:20px;height:20px;border-radius:50%;
+  background:var(--surface-3);border:1px solid var(--border);
+  color:var(--text-muted);font-size:9px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .15s;
+}
+.node-action-btn:hover{background:var(--accent-dim);color:#fff;border-color:var(--accent)}
+
+/* ── Connection Ports ── */
+.port{
+  position:absolute;width:10px;height:10px;border-radius:50%;
+  border:2px solid var(--bg);cursor:crosshair;z-index:15;
+  transition:transform .15s, box-shadow .15s;
+}
+.port:hover{transform:scale(1.6);box-shadow:0 0 10px currentColor}
+.port.port-out{bottom:-5px;left:50%;margin-left:-5px;background:var(--accent)}
+.port.port-in{top:-5px;left:50%;margin-left:-5px;background:var(--green)}
+.port.port-left{left:-5px;top:50%;margin-top:-5px;background:var(--accent)}
+.port.port-right{right:-5px;top:50%;margin-top:-5px;background:var(--accent)}
+.port.port-out.active{animation:portPulse 1s ease infinite}
+.port.port-in.glow{transform:scale(1.5);box-shadow:0 0 12px var(--green)}
+@keyframes portPulse{0%,100%{box-shadow:0 0 0 0 rgba(129,140,248,.6)}50%{box-shadow:0 0 0 8px rgba(129,140,248,0)}}
+
+/* ── Empty State ── */
+.empty-state{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:12px;pointer-events:none;
+}
+.empty-state .empty-icon{font-size:48px;opacity:.3}
+.empty-state h2{font-size:18px;color:var(--text-muted);font-weight:600}
+.empty-state p{font-size:13px;color:var(--text-dim);max-width:300px;text-align:center}
+.empty-state .btn{pointer-events:auto}
+
+/* ── Toolbar ── */
+.toolbar{
+  position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
+  background:var(--surface-2);border:1px solid var(--border);
+  border-radius:var(--radius);padding:6px 10px;display:flex;gap:4px;
+  z-index:50;box-shadow:var(--shadow);
+}
+.toolbar .btn{border:none;background:transparent;padding:7px 9px;font-size:11px}
+.toolbar .btn:hover{background:var(--surface-3)}
+.toolbar .separator{width:1px;background:var(--border);margin:0 3px}
+.zoom-display{font-size:11px;color:var(--text-muted);display:flex;align-items:center;min-width:40px;justify-content:center;font-weight:600}
+
+/* ── Connecting Banner ── */
+.connect-banner{
+  position:absolute;top:8px;left:50%;transform:translateX(-50%);
+  background:linear-gradient(135deg,var(--accent-dim),#7c3aed);
+  color:#fff;padding:8px 20px;border-radius:var(--radius);
+  font-size:12px;font-weight:600;z-index:100;display:none;
+  box-shadow:0 4px 20px rgba(99,102,241,.4);align-items:center;gap:8px;
+}
+.connect-banner.show{display:flex}
+.connect-banner .cancel-link{padding:2px 8px;border-radius:4px;background:rgba(255,255,255,.2);cursor:pointer;font-size:10px}
+.connect-banner .cancel-link:hover{background:rgba(255,255,255,.3)}
+
+/* ── Panel (Node Editor) ── */
+.panel{
+  position:fixed;right:-480px;top:0;bottom:0;width:460px;
+  background:var(--surface);border-left:1px solid var(--border);
+  z-index:200;transition:right .35s cubic-bezier(.4,0,.2,1);
+  display:flex;flex-direction:column;
+}
+.panel.open{right:0}
+.panel-header{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.panel-header h2{font-size:15px;font-weight:700}
+.panel-body{flex:1;overflow-y:auto;padding:18px 20px}
+.panel-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
+
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+.form-group input,.form-group select,.form-group textarea{
+  width:100%;padding:9px 11px;border-radius:var(--radius-xs);
+  border:1px solid var(--border);background:var(--surface-2);
+  color:var(--text);font-size:12px;font-family:inherit;transition:border-color .2s;
+}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{
+  outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(99,102,241,.15);
+}
+.form-group textarea{min-height:50px;resize:vertical}
+
+/* Shape picker */
+.shape-picker{display:flex;gap:6px;flex-wrap:wrap}
+.shape-option{
+  width:40px;height:40px;border-radius:var(--radius-xs);
+  border:2px solid var(--border);background:var(--surface-2);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .15s;position:relative;
+}
+.shape-option:hover{border-color:var(--accent)}
+.shape-option.active{border-color:var(--accent-bright);background:var(--accent-dim)}
+.shape-option svg{width:24px;height:24px;fill:none;stroke:var(--text-muted);stroke-width:1.5}
+.shape-option.active svg{stroke:var(--accent-bright)}
+
+/* Colour picker */
+.color-picker{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.color-swatch{
+  width:26px;height:26px;border-radius:6px;cursor:pointer;
+  border:2px solid transparent;transition:all .15s;
+}
+.color-swatch:hover{transform:scale(1.15)}
+.color-swatch.active{border-color:#fff;box-shadow:0 0 8px rgba(255,255,255,.3)}
+.color-custom{position:relative}
+.color-custom input[type="color"]{
+  width:26px;height:26px;border:none;border-radius:6px;cursor:pointer;
+  padding:0;background:none;
+}
+
+/* ── Modal ── */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.6);
+  z-index:300;display:none;align-items:center;justify-content:center;
+  backdrop-filter:blur(4px);
+}
+.modal-overlay.show{display:flex}
+.modal{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:28px;width:100%;max-width:480px;
+  box-shadow:var(--shadow-lg);animation:modalIn .25s ease;
+}
+@keyframes modalIn{from{opacity:0;transform:scale(.95) translateY(10px)}to{opacity:1;transform:none}}
+.modal h2{font-size:17px;font-weight:700;margin-bottom:6px}
+.modal p{font-size:12px;color:var(--text-muted);margin-bottom:20px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
+
+/* Type cards for new map */
+.type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.type-card{
+  padding:14px 10px;border-radius:var(--radius-xs);
+  border:1.5px solid var(--border);background:var(--surface-2);
+  cursor:pointer;text-align:center;transition:all .2s;
+}
+.type-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 4px 15px rgba(99,102,241,.15)}
+.type-card.selected{border-color:var(--accent-bright);background:var(--accent-dim)}
+.type-card .type-icon{font-size:24px;margin-bottom:6px}
+.type-card .type-name{font-size:11px;font-weight:600}
+.type-card .type-desc{font-size:9px;color:var(--text-dim);margin-top:3px}
+
+/* ── Settings Modal ── */
+.settings-section{margin-bottom:20px}
+.settings-section h3{font-size:13px;font-weight:700;margin-bottom:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;font-size:11px}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)}
+.settings-row:last-child{border-bottom:none}
+.settings-label{font-size:12px;font-weight:500}
+.settings-label small{display:block;font-size:10px;color:var(--text-dim);font-weight:400;margin-top:2px}
+
+/* Toggle switch */
+.toggle{width:36px;height:20px;border-radius:10px;background:var(--border);cursor:pointer;position:relative;transition:background .2s;flex-shrink:0}
+.toggle.on{background:var(--accent-dim)}
+.toggle::after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;top:2px;left:2px;transition:transform .2s}
+.toggle.on::after{transform:translateX(16px)}
+
+/* ── Overlay ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:199;opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay.show{opacity:1;pointer-events:auto}
+
+/* ── Context Menu ── */
+.context-menu{
+  position:fixed;background:var(--surface-2);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:5px;min-width:190px;
+  z-index:300;box-shadow:var(--shadow-lg);display:none;
+}
+.context-menu.show{display:block}
+.context-menu-item{
+  padding:7px 11px;border-radius:var(--radius-xs);font-size:12px;
+  cursor:pointer;display:flex;align-items:center;gap:7px;transition:background .15s;
+}
+.context-menu-item:hover{background:var(--surface-3)}
+.context-menu-item.danger{color:var(--rose)}
+.context-menu-item.danger:hover{background:var(--rose-dim)}
+.context-menu-sep{height:1px;background:var(--border);margin:3px 0}
+
+/* ── Toast ── */
+.toast-container{position:fixed;top:60px;right:16px;z-index:500;display:flex;flex-direction:column;gap:6px}
+.toast{
+  padding:10px 16px;border-radius:var(--radius-sm);background:var(--surface-2);
+  border:1px solid var(--border);font-size:12px;max-width:300px;
+  animation:toastIn .3s ease,toastOut .3s ease 2.7s forwards;box-shadow:var(--shadow);
+}
+.toast.success{border-color:var(--green-dim);color:var(--green)}
+.toast.error{border-color:var(--rose-dim);color:var(--rose)}
+.toast.info{border-color:var(--accent-dim);color:var(--accent-bright)}
+@keyframes toastIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+@keyframes toastOut{from{opacity:1}to{opacity:0;transform:translateX(40px)}}
+
+/* ── Sidebar Toggle (when collapsed) ── */
+.sidebar-toggle{
+  position:absolute;top:12px;left:12px;z-index:60;
+  width:32px;height:32px;border-radius:var(--radius-xs);
+  background:var(--surface-2);border:1px solid var(--border);
+  color:var(--text);font-size:14px;cursor:pointer;
+  display:none;align-items:center;justify-content:center;
+  transition:all .2s;
+}
+.sidebar-toggle:hover{background:var(--surface-3);border-color:var(--accent)}
+.sidebar.collapsed ~ .canvas-area .sidebar-toggle{display:flex}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--text-dim)}
+
+/* ── Rename input ── */
+.rename-input{
+  background:var(--surface-2);border:1px solid var(--accent);
+  color:var(--text);font-size:12px;font-family:inherit;
+  padding:2px 6px;border-radius:4px;width:100%;
+  outline:none;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">SS</div>
+    <div class="logo-text">Seamless<span>Source</span></div>
+  </div>
+  <div class="header-nav">
+    <a href="/">📊 Sitemap</a>
+    <a href="/mindmaps.html" class="active">🧠 Mind Maps</a>
+  </div>
+  <div class="save-indicator" id="save-ind">✓ Saved</div>
+  <div class="header-actions">
+    <button class="btn" onclick="openSettings()">⚙️ Settings</button>
+    <button class="btn btn-primary" onclick="manualSave()">💾 Save</button>
+    <button class="btn" onclick="exportCurrentMap()">⬇️ Export</button>
+    <button class="btn" onclick="importMap()">📂 Import</button>
+    <button class="btn" style="background:var(--rose-dim)" onclick="logout()">🚪 Logout</button>
+  </div>
+</header>
+
+<div class="app-body">
+  <!-- Sidebar -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h3>🧠 Mind Maps</h3>
+      <button class="btn btn-sm btn-ghost" onclick="toggleSidebar()" title="Collapse sidebar">◀</button>
+    </div>
+    <div class="sidebar-search">
+      <input type="text" id="sidebar-search" placeholder="Search maps…" oninput="filterSidebar()">
+    </div>
+    <div class="sidebar-list" id="sidebar-list">
+      <!-- populated by JS -->
+    </div>
+    <div class="sidebar-footer">
+      <button class="btn btn-primary" style="width:100%" onclick="openNewMapModal()">➕ New Mind Map</button>
+    </div>
+  </div>
+
+  <!-- Canvas Area -->
+  <div class="canvas-area" id="canvas-area">
+    <button class="sidebar-toggle" onclick="toggleSidebar()" title="Show sidebar">▶</button>
+
+    <div class="connect-banner" id="connect-banner">
+      <span>🔗 Drag to a node to connect</span>
+      <span class="cancel-link" onclick="cancelConnect()">ESC Cancel</span>
+    </div>
+
+    <!-- Empty state (no map selected) -->
+    <div class="empty-state" id="empty-state">
+      <div class="empty-icon">🧠</div>
+      <h2>No mind map selected</h2>
+      <p>Create a new mind map or select one from the sidebar to get started.</p>
+      <button class="btn btn-primary" onclick="openNewMapModal()">➕ Create Mind Map</button>
+    </div>
+
+    <div id="canvas-wrap" style="display:none">
+      <div class="grid-bg" id="grid-bg"></div>
+      <svg id="connections"></svg>
+      <div id="canvas"></div>
+      <div id="conn-del-layer"></div>
+      <div id="lasso"></div>
+    </div>
+
+    <div class="toolbar" id="toolbar" style="display:none">
+      <button class="btn" onclick="undo()" title="Undo (Ctrl+Z)">↩️</button>
+      <button class="btn" onclick="redo()" title="Redo (Ctrl+Shift+Z)">↪️</button>
+      <div class="separator"></div>
+      <button class="btn" onclick="zoomIn()">➕</button>
+      <div class="zoom-display" id="zoom-display">100%</div>
+      <button class="btn" onclick="zoomOut()">➖</button>
+      <div class="separator"></div>
+      <button class="btn" onclick="fitAll()">📐 Fit</button>
+      <div class="separator"></div>
+      <button class="btn" onclick="autoLayout()">🔄 Layout</button>
+      <div class="separator"></div>
+      <button class="btn" onclick="addNodeAtCenter()">➕ Node</button>
+    </div>
+  </div>
+</div>
+
+<!-- Overlay for panel -->
+<div class="overlay" id="overlay" onclick="closePanel()"></div>
+
+<!-- Node Editor Panel -->
+<div class="panel" id="panel">
+  <div class="panel-header">
+    <h2 id="panel-title">Add Node</h2>
+    <button class="btn btn-sm" onclick="closePanel()">✕</button>
+  </div>
+  <div class="panel-body">
+    <div class="form-group">
+      <label>Label / Title</label>
+      <input type="text" id="form-label" placeholder="Enter node label…">
+    </div>
+    <div class="form-group">
+      <label>Description (optional)</label>
+      <textarea id="form-desc" placeholder="Additional details…"></textarea>
+    </div>
+    <div class="form-group">
+      <label>Shape</label>
+      <div class="shape-picker" id="shape-picker">
+        <div class="shape-option active" data-shape="rounded" title="Rounded">
+          <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="8"/></svg>
+        </div>
+        <div class="shape-option" data-shape="rectangle" title="Rectangle">
+          <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="3"/></svg>
+        </div>
+        <div class="shape-option" data-shape="circle" title="Circle">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>
+        </div>
+        <div class="shape-option" data-shape="diamond" title="Diamond">
+          <svg viewBox="0 0 24 24"><path d="M12 2 L22 12 L12 22 L2 12 Z"/></svg>
+        </div>
+        <div class="shape-option" data-shape="hexagon" title="Hexagon">
+          <svg viewBox="0 0 24 24"><path d="M6 2 L18 2 L24 12 L18 22 L6 22 L0 12 Z"/></svg>
+        </div>
+        <div class="shape-option" data-shape="pill" title="Pill">
+          <svg viewBox="0 0 24 24"><rect x="1" y="7" width="22" height="10" rx="5"/></svg>
+        </div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Colour</label>
+      <div class="color-picker" id="color-picker">
+        <div class="color-swatch active" data-color="#818cf8" style="background:#818cf8" title="Indigo"></div>
+        <div class="color-swatch" data-color="#34d399" style="background:#34d399" title="Emerald"></div>
+        <div class="color-swatch" data-color="#22d3ee" style="background:#22d3ee" title="Cyan"></div>
+        <div class="color-swatch" data-color="#fbbf24" style="background:#fbbf24" title="Amber"></div>
+        <div class="color-swatch" data-color="#fb923c" style="background:#fb923c" title="Orange"></div>
+        <div class="color-swatch" data-color="#fb7185" style="background:#fb7185" title="Rose"></div>
+        <div class="color-swatch" data-color="#c084fc" style="background:#c084fc" title="Purple"></div>
+        <div class="color-swatch" data-color="#2dd4bf" style="background:#2dd4bf" title="Teal"></div>
+        <div class="color-swatch" data-color="#f472b6" style="background:#f472b6" title="Pink"></div>
+        <div class="color-swatch" data-color="#64748b" style="background:#64748b" title="Slate"></div>
+        <div class="color-custom">
+          <input type="color" id="custom-color" value="#818cf8" title="Custom colour" oninput="selectCustomColor(this.value)">
+        </div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Icon / Emoji (optional)</label>
+      <input type="text" id="form-icon" placeholder="e.g. 💡 🎯 📌" maxlength="4">
+    </div>
+  </div>
+  <div class="panel-footer">
+    <button class="btn" onclick="closePanel()">Cancel</button>
+    <button class="btn btn-primary" id="panel-save" onclick="saveNodeForm()">Add Node</button>
+  </div>
+</div>
+
+<!-- Sidebar Context Menu -->
+<div class="context-menu" id="sidebar-ctx">
+  <div class="context-menu-item" onclick="renameMapCtx()">✏️ Rename</div>
+  <div class="context-menu-item" onclick="duplicateMapCtx()">📋 Duplicate</div>
+  <div class="context-menu-item" onclick="exportMapCtx()">⬇️ Export</div>
+  <div class="context-menu-sep"></div>
+  <div class="context-menu-item danger" onclick="deleteMapCtx()">🗑️ Delete</div>
+</div>
+
+<!-- Node Context Menu -->
+<div class="context-menu" id="node-ctx">
+  <div class="context-menu-item" onclick="editNodeCtx()">✏️ Edit Node</div>
+  <div class="context-menu-item" onclick="duplicateNodeCtx()">📋 Duplicate</div>
+  <div class="context-menu-sep"></div>
+  <div class="context-menu-item" onclick="disconnectNodeCtx()">🔌 Disconnect All</div>
+  <div class="context-menu-sep"></div>
+  <div class="context-menu-item danger" onclick="deleteNodeCtx()">🗑️ Delete Node</div>
+</div>
+
+<!-- New Mind Map Modal -->
+<div class="modal-overlay" id="new-map-modal">
+  <div class="modal">
+    <h2>✨ New Mind Map</h2>
+    <p>Give your mind map a name and choose a type to get started.</p>
+    <div class="form-group">
+      <label>Name</label>
+      <input type="text" id="new-map-name" placeholder="e.g. Product Roadmap" autofocus>
+    </div>
+    <div class="form-group">
+      <label>Type</label>
+      <div class="type-grid" id="type-grid">
+        <div class="type-card selected" data-type="freeform">
+          <div class="type-icon">🎨</div>
+          <div class="type-name">Freeform</div>
+          <div class="type-desc">Blank canvas</div>
+        </div>
+        <div class="type-card" data-type="radial">
+          <div class="type-icon">🕸️</div>
+          <div class="type-name">Radial</div>
+          <div class="type-desc">Central topic</div>
+        </div>
+        <div class="type-card" data-type="orgchart">
+          <div class="type-icon">🏢</div>
+          <div class="type-name">Org Chart</div>
+          <div class="type-desc">Top-down tree</div>
+        </div>
+        <div class="type-card" data-type="flowchart">
+          <div class="type-icon">📊</div>
+          <div class="type-name">Flowchart</div>
+          <div class="type-desc">Process flow</div>
+        </div>
+        <div class="type-card" data-type="concept">
+          <div class="type-icon">🔗</div>
+          <div class="type-name">Concept Map</div>
+          <div class="type-desc">Cross-links</div>
+        </div>
+        <div class="type-card" data-type="swot">
+          <div class="type-icon">📋</div>
+          <div class="type-name">SWOT</div>
+          <div class="type-desc">4-quadrant</div>
+        </div>
+        <div class="type-card" data-type="timeline">
+          <div class="type-icon">📅</div>
+          <div class="type-name">Timeline</div>
+          <div class="type-desc">Chronological</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeNewMapModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="createNewMap()">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal" style="max-width:520px">
+    <h2>⚙️ Settings</h2>
+    <p>Customise your mind map builder experience.</p>
+    <div class="settings-section">
+      <h3>Canvas</h3>
+      <div class="settings-row">
+        <div class="settings-label">Show Grid<small>Display background dot grid</small></div>
+        <div class="toggle" id="set-grid" onclick="toggleSetting(this)"></div>
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Snap to Grid<small>Nodes snap to nearest grid point</small></div>
+        <div class="toggle" id="set-snap" onclick="toggleSetting(this)"></div>
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Connection Style<small>How connections are drawn</small></div>
+        <select id="set-conn-style" style="width:120px;padding:5px 8px;border-radius:var(--radius-xs);border:1px solid var(--border);background:var(--surface-2);color:var(--text);font-size:11px;font-family:inherit">
+          <option value="bezier">Bezier Curves</option>
+          <option value="straight">Straight Lines</option>
+          <option value="step">Step / Elbow</option>
+        </select>
+      </div>
+    </div>
+    <div class="settings-section">
+      <h3>Defaults</h3>
+      <div class="settings-row">
+        <div class="settings-label">Default Node Shape</div>
+        <select id="set-def-shape" style="width:120px;padding:5px 8px;border-radius:var(--radius-xs);border:1px solid var(--border);background:var(--surface-2);color:var(--text);font-size:11px;font-family:inherit">
+          <option value="rounded">Rounded</option>
+          <option value="rectangle">Rectangle</option>
+          <option value="circle">Circle</option>
+          <option value="diamond">Diamond</option>
+          <option value="hexagon">Hexagon</option>
+          <option value="pill">Pill</option>
+        </select>
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Default Node Colour</div>
+        <input type="color" id="set-def-color" value="#818cf8" style="width:32px;height:24px;border:none;border-radius:4px;cursor:pointer">
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Auto-save<small>Automatically save changes</small></div>
+        <select id="set-autosave" style="width:120px;padding:5px 8px;border-radius:var(--radius-xs);border:1px solid var(--border);background:var(--surface-2);color:var(--text);font-size:11px;font-family:inherit">
+          <option value="10">Every 10 seconds</option>
+          <option value="30" selected>Every 30 seconds</option>
+          <option value="60">Every 1 minute</option>
+          <option value="0">Manual only</option>
+        </select>
+      </div>
+    </div>
+    <div class="settings-section">
+      <h3>Display</h3>
+      <div class="settings-row">
+        <div class="settings-label">Connection Animations<small>Animated flow on connections</small></div>
+        <div class="toggle on" id="set-anim" onclick="toggleSetting(this)"></div>
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Node Font Size</div>
+        <select id="set-font-size" style="width:120px;padding:5px 8px;border-radius:var(--radius-xs);border:1px solid var(--border);background:var(--surface-2);color:var(--text);font-size:11px;font-family:inherit">
+          <option value="small">Small</option>
+          <option value="medium" selected>Medium</option>
+          <option value="large">Large</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeSettings()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+<input type="file" id="file-import" accept=".json" style="display:none" onchange="handleImport(event)">
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+let mapsList = [];          // {id, name, type, createdAt, updatedAt, nodeCount}
+let currentMapId = null;
+let currentMap = null;      // Full map data when loaded
+
+let viewX = 0, viewY = 0, zoom = 1;
+let isDraggingCanvas = false, dragStartX = 0, dragStartY = 0;
+
+let selectedNodeIds = new Set();
+let rightClickedNodeId = null;
+let ctxMapId = null; // for sidebar context
+
+let isDraggingNode = false;
+let dragGroup = [];
+
+let isLassoing = false;
+let lassoStartX = 0, lassoStartY = 0;
+
+let isConnecting = false;
+let connectSourceId = null;
+let tempLineEl = null;
+
+// Undo/Redo
+let undoStack = [];
+let redoStack = [];
+const MAX_UNDO = 50;
+
+// Settings
+let settings = {
+  grid: true,
+  snap: false,
+  connStyle: 'bezier',
+  defaultShape: 'rounded',
+  defaultColor: '#818cf8',
+  autosave: 30,
+  animation: true,
+  fontSize: 'medium'
+};
+
+let autoSaveTimer = null;
+
+// Editing
+let editingNodeId = null;
+
+const canvasWrap = document.getElementById('canvas-wrap');
+const canvas = document.getElementById('canvas');
+const svgEl = document.getElementById('connections');
+const connDelLayer = document.getElementById('conn-del-layer');
+const lassoEl = document.getElementById('lasso');
+
+// Type config
+const TYPE_ICONS = {
+  freeform:'🎨', radial:'🕸️', orgchart:'🏢', flowchart:'📊',
+  concept:'🔗', swot:'📋', timeline:'📅'
+};
+
+const NODE_COLORS = [
+  '#818cf8','#34d399','#22d3ee','#fbbf24','#fb923c','#fb7185','#c084fc','#2dd4bf','#f472b6','#64748b'
+];
+
+// ═══════════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════════
+function toast(msg, type='info') {
+  const c = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  c.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function showSaveIndicator() {
+  const ind = document.getElementById('save-ind');
+  ind.classList.add('show');
+  clearTimeout(ind._t);
+  ind._t = setTimeout(() => ind.classList.remove('show'), 1500);
+}
+
+function timeAgo(iso) {
+  if (!iso) return '';
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// API
+// ═══════════════════════════════════════════════════════════
+async function apiGet(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(r.statusText);
+  return r.json();
+}
+async function apiPost(url, data) {
+  const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+  if (!r.ok) throw new Error(r.statusText);
+  return r.json();
+}
+async function apiDelete(url) {
+  const r = await fetch(url, { method: 'DELETE' });
+  if (!r.ok) throw new Error(r.statusText);
+  return r.json();
+}
+
+async function logout() {
+  try { await fetch('/api/logout', { method: 'POST' }); window.location.href = '/login.html'; }
+  catch (e) { toast('Logout failed', 'error'); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// SIDEBAR
+// ═══════════════════════════════════════════════════════════
+async function loadMapsList() {
+  try {
+    mapsList = await apiGet('/api/mindmaps');
+    renderSidebar();
+  } catch (e) {
+    toast('Failed to load maps', 'error');
+  }
+}
+
+function renderSidebar() {
+  const list = document.getElementById('sidebar-list');
+  const q = document.getElementById('sidebar-search').value.toLowerCase();
+  const filtered = q ? mapsList.filter(m => m.name.toLowerCase().includes(q) || m.type.toLowerCase().includes(q)) : mapsList;
+
+  if (filtered.length === 0) {
+    list.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text-dim);font-size:11px">${q ? 'No maps match your search' : 'No mind maps yet'}</div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(m => `
+    <div class="sidebar-item ${m.id === currentMapId ? 'active' : ''}" data-id="${m.id}" onclick="selectMap('${m.id}')">
+      <div class="map-icon">${TYPE_ICONS[m.type] || '🧠'}</div>
+      <div class="map-info">
+        <div class="map-name">${esc(m.name)}</div>
+        <div class="map-meta">
+          <span class="map-type">${m.type}</span>
+          <span>${m.nodeCount || 0} nodes</span>
+          <span>${timeAgo(m.updatedAt)}</span>
+        </div>
+      </div>
+      <div class="map-dots" onclick="event.stopPropagation();openSidebarCtx('${m.id}',event)">⋯</div>
+    </div>
+  `).join('');
+}
+
+function filterSidebar() { renderSidebar(); }
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('collapsed');
+}
+
+// Sidebar context menu
+function openSidebarCtx(id, e) {
+  ctxMapId = id;
+  const ctx = document.getElementById('sidebar-ctx');
+  let x = e.clientX, y = e.clientY;
+  if (x + 200 > window.innerWidth) x = window.innerWidth - 210;
+  if (y + 160 > window.innerHeight) y = window.innerHeight - 170;
+  ctx.style.left = x + 'px';
+  ctx.style.top = y + 'px';
+  ctx.classList.add('show');
+}
+function closeSidebarCtx() { document.getElementById('sidebar-ctx').classList.remove('show'); }
+
+async function renameMapCtx() {
+  closeSidebarCtx();
+  const item = document.querySelector(`.sidebar-item[data-id="${ctxMapId}"]`);
+  if (!item) return;
+  const nameEl = item.querySelector('.map-name');
+  const oldName = nameEl.textContent;
+  nameEl.innerHTML = `<input class="rename-input" value="${esc(oldName)}" id="rename-input">`;
+  const input = document.getElementById('rename-input');
+  input.focus();
+  input.select();
+  const finish = async () => {
+    const newName = input.value.trim() || oldName;
+    nameEl.textContent = newName;
+    if (newName !== oldName) {
+      try {
+        const map = await apiGet(`/api/mindmaps/${ctxMapId}`);
+        map.name = newName;
+        await apiPost(`/api/mindmaps/${ctxMapId}`, map);
+        const m = mapsList.find(x => x.id === ctxMapId);
+        if (m) m.name = newName;
+        if (currentMap && currentMap.id === ctxMapId) currentMap.name = newName;
+        toast('Renamed!', 'success');
+      } catch (e) { toast('Rename failed', 'error'); nameEl.textContent = oldName; }
+    }
+  };
+  input.addEventListener('blur', finish);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { input.value = oldName; input.blur(); } });
+}
+
+async function duplicateMapCtx() {
+  closeSidebarCtx();
+  try {
+    const map = await apiGet(`/api/mindmaps/${ctxMapId}`);
+    const res = await apiPost('/api/mindmaps', { name: map.name + ' (copy)', type: map.type, nodes: map.nodes, connections: map.connections, nextNodeId: map.nextNodeId, nextConnId: map.nextConnId, settings: map.settings });
+    toast('Map duplicated!', 'success');
+    await loadMapsList();
+    selectMap(res.id);
+  } catch (e) { toast('Duplicate failed', 'error'); }
+}
+
+function exportMapCtx() {
+  closeSidebarCtx();
+  exportMapById(ctxMapId);
+}
+
+async function deleteMapCtx() {
+  closeSidebarCtx();
+  const m = mapsList.find(x => x.id === ctxMapId);
+  if (!confirm(`Delete "${m?.name || 'this map'}"? This cannot be undone.`)) return;
+  try {
+    await apiDelete(`/api/mindmaps/${ctxMapId}`);
+    toast('Map deleted', 'info');
+    if (currentMapId === ctxMapId) { currentMapId = null; currentMap = null; showEmptyState(); }
+    await loadMapsList();
+  } catch (e) { toast('Delete failed', 'error'); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// MAP SELECTION & LOADING
+// ═══════════════════════════════════════════════════════════
+async function selectMap(id) {
+  if (currentMapId && currentMap) await saveCurrentMap();
+  try {
+    currentMap = await apiGet(`/api/mindmaps/${id}`);
+    currentMapId = id;
+    // Ensure defaults
+    if (!currentMap.nodes) currentMap.nodes = [];
+    if (!currentMap.connections) currentMap.connections = [];
+    if (!currentMap.nextNodeId) currentMap.nextNodeId = 1;
+    if (!currentMap.nextConnId) currentMap.nextConnId = 1;
+    if (!currentMap.viewState) currentMap.viewState = { x: 0, y: 0, zoom: 1 };
+
+    selectedNodeIds.clear();
+    undoStack = [];
+    redoStack = [];
+    viewX = currentMap.viewState.x || 0;
+    viewY = currentMap.viewState.y || 0;
+    zoom = currentMap.viewState.zoom || 1;
+
+    hideEmptyState();
+    render();
+    applyTransform();
+    renderSidebar();
+    if (currentMap.nodes.length > 0) setTimeout(fitAll, 100);
+  } catch (e) {
+    toast('Failed to load map', 'error');
+  }
+}
+
+function showEmptyState() {
+  document.getElementById('empty-state').style.display = 'flex';
+  canvasWrap.style.display = 'none';
+  document.getElementById('toolbar').style.display = 'none';
+}
+
+function hideEmptyState() {
+  document.getElementById('empty-state').style.display = 'none';
+  canvasWrap.style.display = 'block';
+  document.getElementById('toolbar').style.display = 'flex';
+}
+
+// ═══════════════════════════════════════════════════════════
+// NEW MAP MODAL
+// ═══════════════════════════════════════════════════════════
+let selectedType = 'freeform';
+
+function openNewMapModal() {
+  document.getElementById('new-map-modal').classList.add('show');
+  document.getElementById('new-map-name').value = '';
+  document.getElementById('new-map-name').focus();
+  selectedType = 'freeform';
+  document.querySelectorAll('#type-grid .type-card').forEach(c => c.classList.toggle('selected', c.dataset.type === 'freeform'));
+}
+
+function closeNewMapModal() {
+  document.getElementById('new-map-modal').classList.remove('show');
+}
+
+document.querySelectorAll('#type-grid .type-card').forEach(card => {
+  card.addEventListener('click', () => {
+    selectedType = card.dataset.type;
+    document.querySelectorAll('#type-grid .type-card').forEach(c => c.classList.toggle('selected', c === card));
+  });
+});
+
+async function createNewMap() {
+  const name = document.getElementById('new-map-name').value.trim();
+  if (!name) { toast('Please enter a name', 'error'); return; }
+
+  const templateNodes = getTemplateNodes(selectedType);
+  const templateConns = getTemplateConnections(selectedType);
+
+  try {
+    const res = await apiPost('/api/mindmaps', {
+      name, type: selectedType,
+      nodes: templateNodes,
+      connections: templateConns,
+      nextNodeId: templateNodes.length + 1,
+      nextConnId: templateConns.length + 1,
+    });
+    closeNewMapModal();
+    toast('Mind map created!', 'success');
+    await loadMapsList();
+    selectMap(res.id);
+  } catch (e) { toast('Failed to create', 'error'); }
+}
+
+// ═══════════════════════════════════════════════════════════
+// TEMPLATES
+// ═══════════════════════════════════════════════════════════
+function getTemplateNodes(type) {
+  const c = settings.defaultColor;
+  switch (type) {
+    case 'radial': return [
+      { id:1, label:'Central Topic', description:'', shape:'circle', color:'#818cf8', textColor:'#fff', icon:'🎯', x:500, y:400, collapsed:false, metadata:{} },
+      { id:2, label:'Branch 1', description:'', shape:'rounded', color:'#34d399', textColor:'#fff', icon:'', x:250, y:200, collapsed:false, metadata:{} },
+      { id:3, label:'Branch 2', description:'', shape:'rounded', color:'#22d3ee', textColor:'#fff', icon:'', x:750, y:200, collapsed:false, metadata:{} },
+      { id:4, label:'Branch 3', description:'', shape:'rounded', color:'#fbbf24', textColor:'#fff', icon:'', x:250, y:600, collapsed:false, metadata:{} },
+      { id:5, label:'Branch 4', description:'', shape:'rounded', color:'#fb923c', textColor:'#fff', icon:'', x:750, y:600, collapsed:false, metadata:{} },
+    ];
+    case 'orgchart': return [
+      { id:1, label:'CEO', description:'Chief Executive', shape:'rectangle', color:'#818cf8', textColor:'#fff', icon:'👤', x:400, y:50, collapsed:false, metadata:{} },
+      { id:2, label:'CTO', description:'Technology', shape:'rectangle', color:'#22d3ee', textColor:'#fff', icon:'💻', x:200, y:250, collapsed:false, metadata:{} },
+      { id:3, label:'CFO', description:'Finance', shape:'rectangle', color:'#34d399', textColor:'#fff', icon:'💰', x:600, y:250, collapsed:false, metadata:{} },
+      { id:4, label:'Dev Lead', description:'Engineering', shape:'rounded', color:'#64748b', textColor:'#fff', icon:'', x:100, y:450, collapsed:false, metadata:{} },
+      { id:5, label:'DevOps', description:'Infrastructure', shape:'rounded', color:'#64748b', textColor:'#fff', icon:'', x:300, y:450, collapsed:false, metadata:{} },
+    ];
+    case 'flowchart': return [
+      { id:1, label:'Start', description:'', shape:'pill', color:'#34d399', textColor:'#fff', icon:'▶️', x:400, y:50, collapsed:false, metadata:{} },
+      { id:2, label:'Process Step', description:'Do something', shape:'rectangle', color:'#818cf8', textColor:'#fff', icon:'', x:400, y:200, collapsed:false, metadata:{} },
+      { id:3, label:'Decision?', description:'Yes or No', shape:'diamond', color:'#fbbf24', textColor:'#fff', icon:'', x:400, y:400, collapsed:false, metadata:{} },
+      { id:4, label:'Result A', description:'If yes', shape:'rectangle', color:'#22d3ee', textColor:'#fff', icon:'', x:200, y:600, collapsed:false, metadata:{} },
+      { id:5, label:'Result B', description:'If no', shape:'rectangle', color:'#fb7185', textColor:'#fff', icon:'', x:600, y:600, collapsed:false, metadata:{} },
+      { id:6, label:'End', description:'', shape:'pill', color:'#fb7185', textColor:'#fff', icon:'⏹️', x:400, y:800, collapsed:false, metadata:{} },
+    ];
+    case 'concept': return [
+      { id:1, label:'Main Concept', description:'', shape:'rounded', color:'#818cf8', textColor:'#fff', icon:'💡', x:400, y:300, collapsed:false, metadata:{} },
+      { id:2, label:'Related Idea A', description:'', shape:'rounded', color:'#34d399', textColor:'#fff', icon:'', x:150, y:150, collapsed:false, metadata:{} },
+      { id:3, label:'Related Idea B', description:'', shape:'rounded', color:'#22d3ee', textColor:'#fff', icon:'', x:650, y:150, collapsed:false, metadata:{} },
+      { id:4, label:'Sub-concept', description:'', shape:'rounded', color:'#fbbf24', textColor:'#fff', icon:'', x:400, y:550, collapsed:false, metadata:{} },
+    ];
+    case 'swot': return [
+      { id:1, label:'SWOT Analysis', description:'Strategic Planning', shape:'circle', color:'#818cf8', textColor:'#fff', icon:'📋', x:400, y:350, collapsed:false, metadata:{} },
+      { id:2, label:'Strengths', description:'Internal advantages', shape:'rectangle', color:'#34d399', textColor:'#fff', icon:'💪', x:150, y:100, collapsed:false, metadata:{} },
+      { id:3, label:'Weaknesses', description:'Internal disadvantages', shape:'rectangle', color:'#fb7185', textColor:'#fff', icon:'⚠️', x:650, y:100, collapsed:false, metadata:{} },
+      { id:4, label:'Opportunities', description:'External advantages', shape:'rectangle', color:'#22d3ee', textColor:'#fff', icon:'🌟', x:150, y:600, collapsed:false, metadata:{} },
+      { id:5, label:'Threats', description:'External risks', shape:'rectangle', color:'#fbbf24', textColor:'#fff', icon:'🔥', x:650, y:600, collapsed:false, metadata:{} },
+    ];
+    case 'timeline': return [
+      { id:1, label:'Phase 1', description:'Q1 2026', shape:'rounded', color:'#818cf8', textColor:'#fff', icon:'1️⃣', x:100, y:300, collapsed:false, metadata:{} },
+      { id:2, label:'Phase 2', description:'Q2 2026', shape:'rounded', color:'#34d399', textColor:'#fff', icon:'2️⃣', x:400, y:300, collapsed:false, metadata:{} },
+      { id:3, label:'Phase 3', description:'Q3 2026', shape:'rounded', color:'#22d3ee', textColor:'#fff', icon:'3️⃣', x:700, y:300, collapsed:false, metadata:{} },
+      { id:4, label:'Phase 4', description:'Q4 2026', shape:'rounded', color:'#fbbf24', textColor:'#fff', icon:'4️⃣', x:1000, y:300, collapsed:false, metadata:{} },
+    ];
+    default: return [
+      { id:1, label:'Central Idea', description:'Start here', shape:'rounded', color: c, textColor:'#fff', icon:'💡', x:400, y:300, collapsed:false, metadata:{} },
+    ];
+  }
+}
+
+function getTemplateConnections(type) {
+  switch (type) {
+    case 'radial': return [
+      { id:1, source:1, target:2, label:'', style:'solid', color:'#34d399', animated:false },
+      { id:2, source:1, target:3, label:'', style:'solid', color:'#22d3ee', animated:false },
+      { id:3, source:1, target:4, label:'', style:'solid', color:'#fbbf24', animated:false },
+      { id:4, source:1, target:5, label:'', style:'solid', color:'#fb923c', animated:false },
+    ];
+    case 'orgchart': return [
+      { id:1, source:1, target:2, label:'', style:'solid', color:'#4a4a6a', animated:false },
+      { id:2, source:1, target:3, label:'', style:'solid', color:'#4a4a6a', animated:false },
+      { id:3, source:2, target:4, label:'', style:'solid', color:'#4a4a6a', animated:false },
+      { id:4, source:2, target:5, label:'', style:'solid', color:'#4a4a6a', animated:false },
+    ];
+    case 'flowchart': return [
+      { id:1, source:1, target:2, label:'', style:'solid', color:'#4a4a6a', animated:false },
+      { id:2, source:2, target:3, label:'', style:'solid', color:'#4a4a6a', animated:false },
+      { id:3, source:3, target:4, label:'Yes', style:'solid', color:'#34d399', animated:false },
+      { id:4, source:3, target:5, label:'No', style:'solid', color:'#fb7185', animated:false },
+      { id:5, source:4, target:6, label:'', style:'solid', color:'#4a4a6a', animated:false },
+      { id:6, source:5, target:6, label:'', style:'solid', color:'#4a4a6a', animated:false },
+    ];
+    case 'concept': return [
+      { id:1, source:1, target:2, label:'leads to', style:'solid', color:'#34d399', animated:false },
+      { id:2, source:1, target:3, label:'relates to', style:'solid', color:'#22d3ee', animated:false },
+      { id:3, source:1, target:4, label:'includes', style:'solid', color:'#fbbf24', animated:false },
+      { id:4, source:2, target:3, label:'connected', style:'dashed', color:'#64748b', animated:false },
+    ];
+    case 'swot': return [
+      { id:1, source:1, target:2, label:'', style:'solid', color:'#34d399', animated:false },
+      { id:2, source:1, target:3, label:'', style:'solid', color:'#fb7185', animated:false },
+      { id:3, source:1, target:4, label:'', style:'solid', color:'#22d3ee', animated:false },
+      { id:4, source:1, target:5, label:'', style:'solid', color:'#fbbf24', animated:false },
+    ];
+    case 'timeline': return [
+      { id:1, source:1, target:2, label:'', style:'solid', color:'#4a4a6a', animated:false },
+      { id:2, source:2, target:3, label:'', style:'solid', color:'#4a4a6a', animated:false },
+      { id:3, source:3, target:4, label:'', style:'solid', color:'#4a4a6a', animated:false },
+    ];
+    default: return [];
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// UNDO / REDO
+// ═══════════════════════════════════════════════════════════
+function pushUndo() {
+  if (!currentMap) return;
+  undoStack.push(JSON.stringify({ nodes: currentMap.nodes, connections: currentMap.connections, nextNodeId: currentMap.nextNodeId, nextConnId: currentMap.nextConnId }));
+  if (undoStack.length > MAX_UNDO) undoStack.shift();
+  redoStack = [];
+}
+
+function undo() {
+  if (!currentMap || undoStack.length === 0) return;
+  redoStack.push(JSON.stringify({ nodes: currentMap.nodes, connections: currentMap.connections, nextNodeId: currentMap.nextNodeId, nextConnId: currentMap.nextConnId }));
+  const state = JSON.parse(undoStack.pop());
+  currentMap.nodes = state.nodes;
+  currentMap.connections = state.connections;
+  currentMap.nextNodeId = state.nextNodeId;
+  currentMap.nextConnId = state.nextConnId;
+  selectedNodeIds.clear();
+  render();
+  toast('Undone', 'info');
+}
+
+function redo() {
+  if (!currentMap || redoStack.length === 0) return;
+  undoStack.push(JSON.stringify({ nodes: currentMap.nodes, connections: currentMap.connections, nextNodeId: currentMap.nextNodeId, nextConnId: currentMap.nextConnId }));
+  const state = JSON.parse(redoStack.pop());
+  currentMap.nodes = state.nodes;
+  currentMap.connections = state.connections;
+  currentMap.nextNodeId = state.nextNodeId;
+  currentMap.nextConnId = state.nextConnId;
+  selectedNodeIds.clear();
+  render();
+  toast('Redone', 'info');
+}
+
+// ═══════════════════════════════════════════════════════════
+// SAVE / LOAD
+// ═══════════════════════════════════════════════════════════
+async function saveCurrentMap() {
+  if (!currentMap || !currentMapId) return;
+  currentMap.viewState = { x: viewX, y: viewY, zoom };
+  try {
+    await apiPost(`/api/mindmaps/${currentMapId}`, currentMap);
+    showSaveIndicator();
+    return true;
+  } catch (e) {
+    toast('Save failed', 'error');
+    return false;
+  }
+}
+
+async function manualSave() {
+  if (await saveCurrentMap()) toast('Saved!', 'success');
+}
+
+function setupAutoSave() {
+  if (autoSaveTimer) clearInterval(autoSaveTimer);
+  if (settings.autosave > 0) {
+    autoSaveTimer = setInterval(() => {
+      if (currentMap) saveCurrentMap();
+    }, settings.autosave * 1000);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// PORT POSITIONS
+// ═══════════════════════════════════════════════════════════
+const _portCache = {};
+function cachePortPositions() {
+  canvas.querySelectorAll('.mm-node').forEach(el => {
+    const id = parseInt(el.dataset.id);
+    const node = currentMap.nodes.find(n => n.id === id);
+    if (!node) return;
+    const w = el.offsetWidth, h = el.offsetHeight;
+    _portCache[id] = {
+      out: { x: node.x + w / 2, y: node.y + h },
+      in:  { x: node.x + w / 2, y: node.y },
+      left: { x: node.x, y: node.y + h / 2 },
+      right: { x: node.x + w, y: node.y + h / 2 },
+      center: { x: node.x + w / 2, y: node.y + h / 2 }
+    };
+  });
+}
+
+function getPort(nodeId, type) {
+  return (_portCache[nodeId] && _portCache[nodeId][type]) || { x: 0, y: 0 };
+}
+
+// ═══════════════════════════════════════════════════════════
+// PATH DRAWING
+// ═══════════════════════════════════════════════════════════
+function makePath(x1, y1, x2, y2) {
+  const style = settings.connStyle;
+  if (style === 'straight') return `M${x1},${y1} L${x2},${y2}`;
+  if (style === 'step') {
+    const my = (y1 + y2) / 2;
+    return `M${x1},${y1} L${x1},${my} L${x2},${my} L${x2},${y2}`;
+  }
+  // bezier
+  const dy = Math.abs(y2 - y1);
+  const cp = Math.max(50, Math.min(dy * 0.5, 200));
+  return `M${x1},${y1} C${x1},${y1 + cp} ${x2},${y2 - cp} ${x2},${y2}`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDERING
+// ═══════════════════════════════════════════════════════════
+function render() {
+  if (!currentMap) return;
+  renderNodes();
+  requestAnimationFrame(() => {
+    cachePortPositions();
+    renderConnections();
+    renderConnDeleteBtns();
+  });
+}
+
+function nodeColorStyle(color) {
+  // Create a subtle gradient background from the node's colour
+  const r = parseInt(color.slice(1,3),16), g = parseInt(color.slice(3,5),16), b = parseInt(color.slice(5,7),16);
+  return `background:linear-gradient(145deg, rgba(${r},${g},${b},0.15), rgba(${r},${g},${b},0.08)); border-color:rgba(${r},${g},${b},0.5);`;
+}
+
+function renderNodes() {
+  canvas.innerHTML = '';
+  if (!currentMap) return;
+
+  const fontClass = settings.fontSize === 'small' ? 'font-size:10px' : settings.fontSize === 'large' ? 'font-size:14px' : '';
+
+  currentMap.nodes.forEach(node => {
+    const el = document.createElement('div');
+    el.className = `mm-node shape-${node.shape || 'rounded'}`;
+    if (selectedNodeIds.has(node.id)) el.classList.add('selected');
+    el.dataset.id = node.id;
+    el.style.left = node.x + 'px';
+    el.style.top = node.y + 'px';
+    el.style.cssText += nodeColorStyle(node.color || '#818cf8');
+    el.style.left = node.x + 'px';
+    el.style.top = node.y + 'px';
+
+    let html = '';
+    if (node.shape === 'diamond') {
+      html += `<div class="diamond-bg" style="border-color:rgba(${hexToRgb(node.color)},0.5)"></div>`;
+    }
+    html += '<div class="node-content">';
+    if (node.icon) html += `<div class="node-icon">${node.icon}</div>`;
+    html += `<div class="node-label" style="${fontClass}">${esc(node.label)}</div>`;
+    if (node.description) html += `<div class="node-desc">${esc(node.description)}</div>`;
+    html += '</div>';
+
+    // Mini action buttons
+    html += `<div class="node-actions-mini">
+      <div class="node-action-btn" onclick="event.stopPropagation();editNodeById(${node.id})" title="Edit">✏️</div>
+    </div>`;
+
+    el.innerHTML = html;
+
+    // Ports
+    const portOut = document.createElement('div');
+    portOut.className = 'port port-out';
+    portOut.title = 'Drag to connect';
+    portOut.style.background = node.color || 'var(--accent)';
+    portOut.addEventListener('mousedown', e => { e.stopPropagation(); e.preventDefault(); startConnect(node.id, e); });
+    el.appendChild(portOut);
+
+    const portIn = document.createElement('div');
+    portIn.className = 'port port-in';
+    portIn.title = 'Drop connection here';
+    portIn.dataset.nodeId = node.id;
+    el.appendChild(portIn);
+
+    // Events
+    el.addEventListener('mousedown', e => onNodeMouseDown(e, node));
+    el.addEventListener('contextmenu', e => onNodeContext(e, node));
+    el.addEventListener('click', e => onNodeClick(e, node));
+    el.addEventListener('dblclick', e => { e.stopPropagation(); editNodeById(node.id); });
+
+    canvas.appendChild(el);
+  });
+}
+
+function hexToRgb(hex) {
+  if (!hex || hex[0] !== '#') return '129,140,248';
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return `${r},${g},${b}`;
+}
+
+function renderConnections() {
+  svgEl.innerHTML = '';
+  if (!currentMap) return;
+
+  // Remove old labels
+  canvas.querySelectorAll('.conn-label').forEach(l => l.remove());
+
+  currentMap.connections.forEach(conn => {
+    const s = getPort(conn.source, 'out');
+    const t = getPort(conn.target, 'in');
+    if (s.x === 0 && s.y === 0) return;
+    if (t.x === 0 && t.y === 0) return;
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', makePath(s.x, s.y, t.x, t.y));
+    path.setAttribute('stroke', conn.color || '#4a4a6a');
+    path.classList.add('conn-path');
+
+    if (conn.style === 'dashed') path.setAttribute('stroke-dasharray', '8 4');
+    else if (conn.style === 'dotted') path.setAttribute('stroke-dasharray', '3 3');
+
+    if (conn.animated && settings.animation) {
+      path.style.strokeDasharray = '8 4';
+      path.style.animation = 'dashFlow .4s linear infinite';
+    }
+
+    svgEl.appendChild(path);
+
+    // Connection label
+    if (conn.label) {
+      const mx = (s.x + t.x) / 2;
+      const my = (s.y + t.y) / 2;
+      const lbl = document.createElement('div');
+      lbl.className = 'conn-label';
+      lbl.textContent = conn.label;
+      lbl.style.left = mx + 'px';
+      lbl.style.top = my + 'px';
+      lbl.addEventListener('dblclick', e => {
+        e.stopPropagation();
+        editConnLabel(conn);
+      });
+      canvas.appendChild(lbl);
+    }
+  });
+}
+
+function editConnLabel(conn) {
+  const newLabel = prompt('Connection label:', conn.label || '');
+  if (newLabel !== null) {
+    pushUndo();
+    conn.label = newLabel;
+    render();
+  }
+}
+
+function renderConnDeleteBtns() {
+  connDelLayer.innerHTML = '';
+  if (!currentMap) return;
+
+  currentMap.connections.forEach(conn => {
+    const s = getPort(conn.source, 'out');
+    const t = getPort(conn.target, 'in');
+    if (s.x === 0 && s.y === 0) return;
+    if (t.x === 0 && t.y === 0) return;
+
+    const mx = (s.x + t.x) / 2;
+    const my = (s.y + t.y) / 2;
+
+    const btn = document.createElement('div');
+    btn.className = 'conn-del';
+    btn.textContent = '✕';
+    btn.title = 'Remove connection';
+    btn.style.left = mx + 'px';
+    btn.style.top = my + 'px';
+    btn.style.transform = 'translate(-50%,-50%)';
+    btn.style.opacity = '0';
+    btn.addEventListener('mouseenter', () => btn.style.opacity = '1');
+    btn.addEventListener('mouseleave', () => btn.style.opacity = '0');
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      pushUndo();
+      currentMap.connections = currentMap.connections.filter(c => c.id !== conn.id);
+      toast('Connection removed', 'info');
+      render();
+    });
+    connDelLayer.appendChild(btn);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// TRANSFORM
+// ═══════════════════════════════════════════════════════════
+function applyTransform() {
+  const t = `translate(${viewX}px, ${viewY}px) scale(${zoom})`;
+  canvas.style.transform = t;
+  svgEl.style.transform = t;
+  connDelLayer.style.transform = t;
+  document.getElementById('zoom-display').textContent = Math.round(zoom * 100) + '%';
+}
+
+function zoomIn() { zoom = Math.min(zoom * 1.2, 3); applyTransform(); }
+function zoomOut() { zoom = Math.max(zoom / 1.2, 0.1); applyTransform(); }
+
+function fitAll() {
+  if (!currentMap || currentMap.nodes.length === 0) return;
+  const ns = currentMap.nodes;
+  const xs = ns.map(n => n.x), ys = ns.map(n => n.y);
+  const minX = Math.min(...xs) - 120, maxX = Math.max(...xs) + 320;
+  const minY = Math.min(...ys) - 80, maxY = Math.max(...ys) + 220;
+  const w = maxX - minX, h = maxY - minY;
+  const area = document.getElementById('canvas-area');
+  const vw = area.clientWidth, vh = area.clientHeight;
+  zoom = Math.min(vw / w, vh / h, 1.5) * 0.85;
+  viewX = (vw - w * zoom) / 2 - minX * zoom;
+  viewY = (vh - h * zoom) / 2 - minY * zoom;
+  applyTransform();
+}
+
+// ═══════════════════════════════════════════════════════════
+// CONNECTION DRAGGING
+// ═══════════════════════════════════════════════════════════
+function startConnect(srcId, e) {
+  isConnecting = true;
+  connectSourceId = srcId;
+  canvasWrap.classList.add('connecting');
+  document.getElementById('connect-banner').classList.add('show');
+
+  const srcPort = canvas.querySelector(`[data-id="${srcId}"] .port-out`);
+  if (srcPort) srcPort.classList.add('active');
+  canvas.querySelectorAll('.port-in').forEach(p => {
+    if (parseInt(p.dataset.nodeId) !== srcId) p.classList.add('glow');
+  });
+
+  const s = getPort(srcId, 'out');
+  tempLineEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  tempLineEl.classList.add('conn-temp');
+  tempLineEl.setAttribute('stroke', '#818cf8');
+  tempLineEl.setAttribute('d', makePath(s.x, s.y, s.x, s.y));
+  svgEl.appendChild(tempLineEl);
+}
+
+function updateTempLine(e) {
+  if (!isConnecting || !tempLineEl) return;
+  const s = getPort(connectSourceId, 'out');
+  const rect = canvasWrap.getBoundingClientRect();
+  const mx = (e.clientX - rect.left - viewX) / zoom;
+  const my = (e.clientY - rect.top - viewY) / zoom;
+  tempLineEl.setAttribute('d', makePath(s.x, s.y, mx, my));
+
+  const target = document.elementFromPoint(e.clientX, e.clientY);
+  canvas.querySelectorAll('.mm-node').forEach(el => {
+    el.classList.toggle('drop-target', el === target?.closest('.mm-node') && parseInt(el.dataset.id) !== connectSourceId);
+  });
+}
+
+function endConnect(e) {
+  if (!isConnecting) return;
+  const target = document.elementFromPoint(e.clientX, e.clientY);
+  let targetId = null;
+  if (target && target.classList.contains('port-in')) {
+    targetId = parseInt(target.dataset.nodeId);
+  } else if (target) {
+    const nodeEl = target.closest('.mm-node');
+    if (nodeEl) targetId = parseInt(nodeEl.dataset.id);
+  }
+
+  if (targetId && targetId !== connectSourceId && currentMap) {
+    const exists = currentMap.connections.some(c => c.source === connectSourceId && c.target === targetId);
+    if (!exists) {
+      pushUndo();
+      const srcNode = currentMap.nodes.find(n => n.id === connectSourceId);
+      currentMap.connections.push({
+        id: currentMap.nextConnId++,
+        source: connectSourceId,
+        target: targetId,
+        label: '',
+        style: 'solid',
+        color: srcNode?.color || '#4a4a6a',
+        animated: false
+      });
+      toast('🔗 Connected!', 'success');
+    } else {
+      toast('Connection already exists', 'info');
+    }
+  }
+  cancelConnect();
+  render();
+}
+
+function cancelConnect() {
+  isConnecting = false;
+  connectSourceId = null;
+  canvasWrap.classList.remove('connecting');
+  document.getElementById('connect-banner').classList.remove('show');
+  if (tempLineEl) { tempLineEl.remove(); tempLineEl = null; }
+  canvas.querySelectorAll('.port-out.active').forEach(p => p.classList.remove('active'));
+  canvas.querySelectorAll('.port-in.glow').forEach(p => p.classList.remove('glow'));
+  canvas.querySelectorAll('.mm-node.drop-target').forEach(el => el.classList.remove('drop-target'));
+}
+
+// ═══════════════════════════════════════════════════════════
+// CANVAS PAN / ZOOM / LASSO
+// ═══════════════════════════════════════════════════════════
+canvasWrap.addEventListener('mousedown', e => {
+  if (e.target === canvasWrap || e.target.id === 'grid-bg' || e.target === svgEl || e.target.tagName === 'svg') {
+    if (isConnecting) return;
+    const rect = canvasWrap.getBoundingClientRect();
+    if (e.shiftKey) {
+      isLassoing = true;
+      lassoStartX = e.clientX - rect.left;
+      lassoStartY = e.clientY - rect.top;
+      lassoEl.style.left = lassoStartX + 'px';
+      lassoEl.style.top = lassoStartY + 'px';
+      lassoEl.style.width = '0px';
+      lassoEl.style.height = '0px';
+      lassoEl.style.display = 'block';
+      canvasWrap.classList.add('lassoing');
+      if (!e.metaKey && !e.ctrlKey) { selectedNodeIds.clear(); renderNodes(); }
+    } else {
+      isDraggingCanvas = true;
+      dragStartX = e.clientX - viewX;
+      dragStartY = e.clientY - viewY;
+      canvasWrap.classList.add('grabbing');
+      selectedNodeIds.clear();
+      renderNodes();
+    }
+    closeNodeCtx();
+    closeSidebarCtx();
+  }
+});
+
+canvasWrap.addEventListener('mousemove', e => {
+  if (isConnecting) { updateTempLine(e); return; }
+
+  if (isLassoing) {
+    const rect = canvasWrap.getBoundingClientRect();
+    const currX = e.clientX - rect.left;
+    const currY = e.clientY - rect.top;
+    lassoEl.style.left = Math.min(lassoStartX, currX) + 'px';
+    lassoEl.style.top = Math.min(lassoStartY, currY) + 'px';
+    lassoEl.style.width = Math.abs(currX - lassoStartX) + 'px';
+    lassoEl.style.height = Math.abs(currY - lassoStartY) + 'px';
+  } else if (isDraggingCanvas) {
+    viewX = e.clientX - dragStartX;
+    viewY = e.clientY - dragStartY;
+    applyTransform();
+  } else if (isDraggingNode && dragGroup.length > 0) {
+    const rect = canvasWrap.getBoundingClientRect();
+    const curX = (e.clientX - rect.left - viewX) / zoom;
+    const curY = (e.clientY - rect.top - viewY) / zoom;
+    dragGroup.forEach(d => {
+      let nx = curX - d.offX;
+      let ny = curY - d.offY;
+      if (settings.snap) { nx = Math.round(nx / 30) * 30; ny = Math.round(ny / 30) * 30; }
+      else { nx = Math.round(nx); ny = Math.round(ny); }
+      d.node.x = nx;
+      d.node.y = ny;
+      const el = canvas.querySelector(`[data-id="${d.node.id}"]`);
+      if (el) { el.style.left = nx + 'px'; el.style.top = ny + 'px'; }
+    });
+    cachePortPositions();
+    renderConnections();
+    renderConnDeleteBtns();
+  }
+
+  // Show conn delete on hover
+  if (!isConnecting && !isLassoing && !isDraggingCanvas && !isDraggingNode) {
+    const rect = canvasWrap.getBoundingClientRect();
+    const mx = (e.clientX - rect.left - viewX) / zoom;
+    const my = (e.clientY - rect.top - viewY) / zoom;
+    connDelLayer.querySelectorAll('.conn-del').forEach(btn => {
+      const bx = parseFloat(btn.style.left);
+      const by = parseFloat(btn.style.top);
+      btn.style.opacity = Math.hypot(bx - mx, by - my) < 40 ? '0.85' : '0';
+    });
+  }
+});
+
+canvasWrap.addEventListener('mouseup', e => {
+  if (isConnecting) { endConnect(e); return; }
+
+  if (isLassoing) {
+    isLassoing = false;
+    lassoEl.style.display = 'none';
+    canvasWrap.classList.remove('lassoing');
+    if (!currentMap) return;
+    const rect = canvasWrap.getBoundingClientRect();
+    const endX = e.clientX - rect.left;
+    const endY = e.clientY - rect.top;
+    const x1 = (Math.min(lassoStartX, endX) - viewX) / zoom;
+    const x2 = (Math.max(lassoStartX, endX) - viewX) / zoom;
+    const y1 = (Math.min(lassoStartY, endY) - viewY) / zoom;
+    const y2 = (Math.max(lassoStartY, endY) - viewY) / zoom;
+    let cnt = 0;
+    currentMap.nodes.forEach(n => {
+      if (n.x + 150 > x1 && n.x < x2 && n.y + 80 > y1 && n.y < y2) { selectedNodeIds.add(n.id); cnt++; }
+    });
+    if (cnt > 0) toast(`Selected ${cnt} node(s)`, 'info');
+    renderNodes();
+  }
+
+  if (isDraggingCanvas) { isDraggingCanvas = false; canvasWrap.classList.remove('grabbing'); }
+  if (isDraggingNode) { isDraggingNode = false; dragGroup = []; }
+});
+
+document.addEventListener('mouseup', e => { if (isConnecting) endConnect(e); });
+
+canvasWrap.addEventListener('wheel', e => {
+  e.preventDefault();
+  const factor = e.deltaY > 0 ? 0.92 : 1.08;
+  const rect = canvasWrap.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const nz = Math.max(0.1, Math.min(3, zoom * factor));
+  viewX = mx - (mx - viewX) * (nz / zoom);
+  viewY = my - (my - viewY) * (nz / zoom);
+  zoom = nz;
+  applyTransform();
+}, { passive: false });
+
+// ═══════════════════════════════════════════════════════════
+// NODE INTERACTIONS
+// ═══════════════════════════════════════════════════════════
+function onNodeMouseDown(e, node) {
+  if (e.button !== 0 || isConnecting) return;
+  if (e.target.classList.contains('port')) return;
+  e.stopPropagation();
+
+  if (!selectedNodeIds.has(node.id) && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
+    selectedNodeIds.clear();
+    selectedNodeIds.add(node.id);
+    renderNodes();
+  } else if (!selectedNodeIds.has(node.id)) {
+    selectedNodeIds.add(node.id);
+    renderNodes();
+  }
+
+  pushUndo();
+  isDraggingNode = true;
+  dragGroup = [];
+
+  const rect = canvasWrap.getBoundingClientRect();
+  const mX = (e.clientX - rect.left - viewX) / zoom;
+  const mY = (e.clientY - rect.top - viewY) / zoom;
+
+  selectedNodeIds.forEach(id => {
+    const n = currentMap.nodes.find(x => x.id === id);
+    if (n) dragGroup.push({ node: n, offX: mX - n.x, offY: mY - n.y });
+  });
+}
+
+function onNodeClick(e, node) {
+  if (e.target.classList.contains('port')) return;
+  e.stopPropagation();
+  if (e.shiftKey || e.metaKey || e.ctrlKey) {
+    if (selectedNodeIds.has(node.id)) selectedNodeIds.delete(node.id);
+    else selectedNodeIds.add(node.id);
+  } else {
+    selectedNodeIds.clear();
+    selectedNodeIds.add(node.id);
+  }
+  render();
+}
+
+function onNodeContext(e, node) {
+  e.preventDefault();
+  e.stopPropagation();
+  if (!selectedNodeIds.has(node.id)) {
+    selectedNodeIds.clear();
+    selectedNodeIds.add(node.id);
+    renderNodes();
+  }
+  rightClickedNodeId = node.id;
+
+  const ctx = document.getElementById('node-ctx');
+  const items = ctx.querySelectorAll('.context-menu-item');
+  const cnt = selectedNodeIds.size;
+  if (cnt > 1) {
+    items[0].style.display = 'none';
+    items[1].innerHTML = `📋 Duplicate (${cnt})`;
+    items[2].innerHTML = `🔌 Disconnect All (${cnt})`;
+    items[3].innerHTML = `🗑️ Delete (${cnt})`;
+  } else {
+    items[0].style.display = 'flex';
+    items[1].innerHTML = '📋 Duplicate';
+    items[2].innerHTML = '🔌 Disconnect All';
+    items[3].innerHTML = '🗑️ Delete Node';
+  }
+
+  let x = e.clientX, y = e.clientY;
+  if (x + 200 > window.innerWidth) x = window.innerWidth - 210;
+  if (y + 180 > window.innerHeight) y = window.innerHeight - 190;
+  ctx.style.left = x + 'px';
+  ctx.style.top = y + 'px';
+  ctx.classList.add('show');
+}
+
+function closeNodeCtx() { document.getElementById('node-ctx').classList.remove('show'); }
+
+// Context menu actions
+function editNodeCtx() { closeNodeCtx(); const id = selectedNodeIds.size === 1 ? Array.from(selectedNodeIds)[0] : rightClickedNodeId; editNodeById(id); }
+function duplicateNodeCtx() {
+  closeNodeCtx();
+  if (!currentMap || selectedNodeIds.size === 0) return;
+  pushUndo();
+  const newSel = new Set();
+  selectedNodeIds.forEach(id => {
+    const n = currentMap.nodes.find(x => x.id === id);
+    if (n) {
+      const newId = currentMap.nextNodeId++;
+      currentMap.nodes.push({ ...n, id: newId, x: n.x + 40, y: n.y + 40, label: n.label + ' (copy)' });
+      newSel.add(newId);
+    }
+  });
+  selectedNodeIds = newSel;
+  toast(`Duplicated ${newSel.size} node(s)`, 'success');
+  render();
+}
+function disconnectNodeCtx() {
+  closeNodeCtx();
+  if (!currentMap || selectedNodeIds.size === 0) return;
+  pushUndo();
+  const before = currentMap.connections.length;
+  currentMap.connections = currentMap.connections.filter(c => !selectedNodeIds.has(c.source) && !selectedNodeIds.has(c.target));
+  toast(`Removed ${before - currentMap.connections.length} connection(s)`, 'info');
+  render();
+}
+function deleteNodeCtx() {
+  closeNodeCtx();
+  if (!currentMap || selectedNodeIds.size === 0) return;
+  pushUndo();
+  const cnt = selectedNodeIds.size;
+  currentMap.nodes = currentMap.nodes.filter(n => !selectedNodeIds.has(n.id));
+  currentMap.connections = currentMap.connections.filter(c => !selectedNodeIds.has(c.source) && !selectedNodeIds.has(c.target));
+  selectedNodeIds.clear();
+  toast(`Deleted ${cnt} node(s)`, 'info');
+  render();
+}
+
+// Close menus on click
+document.addEventListener('click', e => {
+  if (!document.getElementById('node-ctx').contains(e.target)) closeNodeCtx();
+  if (!document.getElementById('sidebar-ctx').contains(e.target)) closeSidebarCtx();
+});
+
+// ═══════════════════════════════════════════════════════════
+// NODE EDITOR PANEL
+// ═══════════════════════════════════════════════════════════
+function addNodeAtCenter() {
+  if (!currentMap) return;
+  editingNodeId = null;
+  document.getElementById('panel-title').textContent = 'Add Node';
+  document.getElementById('panel-save').textContent = 'Add Node';
+  document.getElementById('form-label').value = '';
+  document.getElementById('form-desc').value = '';
+  document.getElementById('form-icon').value = '';
+  setShapePicker(settings.defaultShape);
+  setColorPicker(settings.defaultColor);
+  openPanel();
+}
+
+function editNodeById(id) {
+  if (!currentMap) return;
+  const node = currentMap.nodes.find(n => n.id === id);
+  if (!node) return;
+  editingNodeId = node.id;
+  selectedNodeIds.clear();
+  selectedNodeIds.add(node.id);
+  renderNodes();
+
+  document.getElementById('panel-title').textContent = 'Edit Node';
+  document.getElementById('panel-save').textContent = 'Save Changes';
+  document.getElementById('form-label').value = node.label;
+  document.getElementById('form-desc').value = node.description || '';
+  document.getElementById('form-icon').value = node.icon || '';
+  setShapePicker(node.shape || 'rounded');
+  setColorPicker(node.color || '#818cf8');
+  openPanel();
+}
+
+function setShapePicker(shape) {
+  document.querySelectorAll('#shape-picker .shape-option').forEach(el => {
+    el.classList.toggle('active', el.dataset.shape === shape);
+  });
+}
+
+function setColorPicker(color) {
+  let matched = false;
+  document.querySelectorAll('#color-picker .color-swatch').forEach(el => {
+    const isMatch = el.dataset.color === color;
+    el.classList.toggle('active', isMatch);
+    if (isMatch) matched = true;
+  });
+  document.getElementById('custom-color').value = color;
+  if (!matched) {
+    document.querySelectorAll('#color-picker .color-swatch').forEach(el => el.classList.remove('active'));
+  }
+}
+
+// Shape picker events
+document.querySelectorAll('#shape-picker .shape-option').forEach(opt => {
+  opt.addEventListener('click', () => {
+    document.querySelectorAll('#shape-picker .shape-option').forEach(o => o.classList.remove('active'));
+    opt.classList.add('active');
+  });
+});
+
+// Colour picker events
+document.querySelectorAll('#color-picker .color-swatch').forEach(swatch => {
+  swatch.addEventListener('click', () => {
+    document.querySelectorAll('#color-picker .color-swatch').forEach(s => s.classList.remove('active'));
+    swatch.classList.add('active');
+    document.getElementById('custom-color').value = swatch.dataset.color;
+  });
+});
+
+function selectCustomColor(val) {
+  document.querySelectorAll('#color-picker .color-swatch').forEach(s => s.classList.remove('active'));
+}
+
+function saveNodeForm() {
+  if (!currentMap) return;
+  const label = document.getElementById('form-label').value.trim();
+  if (!label) { toast('Label is required', 'error'); return; }
+  const desc = document.getElementById('form-desc').value.trim();
+  const icon = document.getElementById('form-icon').value.trim();
+  const shape = document.querySelector('#shape-picker .shape-option.active')?.dataset.shape || 'rounded';
+  const activeSwatchEl = document.querySelector('#color-picker .color-swatch.active');
+  const color = activeSwatchEl ? activeSwatchEl.dataset.color : document.getElementById('custom-color').value;
+
+  pushUndo();
+
+  if (editingNodeId) {
+    const node = currentMap.nodes.find(n => n.id === editingNodeId);
+    if (node) {
+      node.label = label;
+      node.description = desc;
+      node.icon = icon;
+      node.shape = shape;
+      node.color = color;
+    }
+    toast('Node updated', 'success');
+  } else {
+    const area = document.getElementById('canvas-area');
+    const cx = (area.clientWidth / 2 - viewX) / zoom;
+    const cy = (area.clientHeight / 2 - viewY) / zoom;
+    currentMap.nodes.push({
+      id: currentMap.nextNodeId++,
+      label, description: desc, shape, color, textColor: '#fff',
+      icon, x: Math.round(cx + (Math.random() * 60 - 30)), y: Math.round(cy + (Math.random() * 60 - 30)),
+      collapsed: false, metadata: {}
+    });
+    toast('Node added!', 'success');
+  }
+  closePanel();
+  render();
+}
+
+function openPanel() { document.getElementById('panel').classList.add('open'); document.getElementById('overlay').classList.add('show'); }
+function closePanel() { document.getElementById('panel').classList.remove('open'); document.getElementById('overlay').classList.remove('show'); }
+
+// ═══════════════════════════════════════════════════════════
+// AUTO LAYOUT
+// ═══════════════════════════════════════════════════════════
+function autoLayout() {
+  if (!currentMap || currentMap.nodes.length === 0) return;
+  pushUndo();
+
+  const type = currentMap.type;
+  const nodes = currentMap.nodes;
+  const conns = currentMap.connections;
+
+  // Build adjacency
+  const children = {};
+  conns.forEach(c => { if (!children[c.source]) children[c.source] = []; children[c.source].push(c.target); });
+
+  // Find root (node with no incoming edges)
+  const targets = new Set(conns.map(c => c.target));
+  let root = nodes.find(n => !targets.has(n.id));
+  if (!root) root = nodes[0];
+
+  if (type === 'radial' || type === 'concept') {
+    // Radial layout
+    root.x = 500; root.y = 400;
+    const kids = nodes.filter(n => n.id !== root.id);
+    const angle = (2 * Math.PI) / Math.max(kids.length, 1);
+    const radius = 250;
+    kids.forEach((n, i) => {
+      n.x = Math.round(root.x + radius * Math.cos(angle * i - Math.PI / 2));
+      n.y = Math.round(root.y + radius * Math.sin(angle * i - Math.PI / 2));
+    });
+  } else if (type === 'timeline') {
+    // Horizontal layout
+    nodes.forEach((n, i) => { n.x = 100 + i * 300; n.y = 300; });
+  } else {
+    // Tree layout (top-down) for orgchart, flowchart, freeform, swot
+    root.x = 500; root.y = 50;
+    function lay(pid, cx, y, sp) {
+      const kids = (children[pid] || []);
+      const tw = kids.length * sp;
+      const bx = cx - tw / 2 + sp / 2;
+      kids.forEach((kid, i) => {
+        const n = nodes.find(n => n.id === kid);
+        if (!n) return;
+        n.x = Math.round(bx + i * sp);
+        n.y = y;
+        lay(kid, n.x, y + 200, Math.max(sp * 0.7, 200));
+      });
+    }
+    lay(root.id, root.x, root.y + 200, 300);
+  }
+
+  render();
+  setTimeout(fitAll, 60);
+  toast('Layout reorganized', 'success');
+}
+
+// ═══════════════════════════════════════════════════════════
+// EXPORT / IMPORT
+// ═══════════════════════════════════════════════════════════
+async function exportCurrentMap() {
+  if (!currentMap) { toast('No map selected', 'error'); return; }
+  exportMapData(currentMap);
+}
+
+async function exportMapById(id) {
+  try {
+    const map = await apiGet(`/api/mindmaps/${id}`);
+    exportMapData(map);
+  } catch (e) { toast('Export failed', 'error'); }
+}
+
+function exportMapData(map) {
+  const d = JSON.stringify({ ...map, exportDate: new Date().toISOString() }, null, 2);
+  const blob = new Blob([d], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `mindmap-${(map.name || 'export').replace(/[^a-z0-9]/gi, '-').toLowerCase()}-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Exported!', 'success');
+}
+
+function importMap() { document.getElementById('file-import').click(); }
+
+async function handleImport(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    try {
+      const d = JSON.parse(ev.target.result);
+      const name = d.name || file.name.replace('.json', '');
+      const res = await apiPost('/api/mindmaps', {
+        name, type: d.type || 'freeform',
+        nodes: d.nodes || [], connections: d.connections || [],
+        nextNodeId: d.nextNodeId || 1, nextConnId: d.nextConnId || 1,
+        settings: d.settings || {}
+      });
+      toast('Imported!', 'success');
+      await loadMapsList();
+      selectMap(res.id);
+    } catch (err) { toast('Invalid file', 'error'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+// ═══════════════════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════════════════
+function openSettings() {
+  document.getElementById('settings-modal').classList.add('show');
+  // Populate
+  setToggle('set-grid', settings.grid);
+  setToggle('set-snap', settings.snap);
+  setToggle('set-anim', settings.animation);
+  document.getElementById('set-conn-style').value = settings.connStyle;
+  document.getElementById('set-def-shape').value = settings.defaultShape;
+  document.getElementById('set-def-color').value = settings.defaultColor;
+  document.getElementById('set-autosave').value = String(settings.autosave);
+  document.getElementById('set-font-size').value = settings.fontSize;
+}
+
+function closeSettings() { document.getElementById('settings-modal').classList.remove('show'); }
+
+function setToggle(id, on) {
+  const el = document.getElementById(id);
+  el.classList.toggle('on', on);
+}
+
+function toggleSetting(el) { el.classList.toggle('on'); }
+
+async function saveSettings() {
+  settings.grid = document.getElementById('set-grid').classList.contains('on');
+  settings.snap = document.getElementById('set-snap').classList.contains('on');
+  settings.animation = document.getElementById('set-anim').classList.contains('on');
+  settings.connStyle = document.getElementById('set-conn-style').value;
+  settings.defaultShape = document.getElementById('set-def-shape').value;
+  settings.defaultColor = document.getElementById('set-def-color').value;
+  settings.autosave = parseInt(document.getElementById('set-autosave').value);
+  settings.fontSize = document.getElementById('set-font-size').value;
+
+  // Apply
+  document.getElementById('grid-bg').style.display = settings.grid ? 'block' : 'none';
+  setupAutoSave();
+  if (currentMap) render();
+
+  try {
+    await apiPost('/api/settings', settings);
+    toast('Settings saved!', 'success');
+  } catch (e) { toast('Failed to save settings', 'error'); }
+  closeSettings();
+}
+
+async function loadSettings() {
+  try {
+    const s = await apiGet('/api/settings');
+    if (s && Object.keys(s).length > 0) {
+      settings = { ...settings, ...s };
+    }
+  } catch (e) { /* use defaults */ }
+  // Apply
+  document.getElementById('grid-bg').style.display = settings.grid ? 'block' : 'none';
+  setupAutoSave();
+}
+
+// ═══════════════════════════════════════════════════════════
+// KEYBOARD
+// ═══════════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { if (isConnecting) cancelConnect(); closeNodeCtx(); closeSidebarCtx(); closePanel(); closeNewMapModal(); closeSettings(); }
+
+  const isInput = document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'SELECT';
+  if (isInput) return;
+
+  // Delete
+  if ((e.key === 'Delete' || e.key === 'Backspace') && selectedNodeIds.size > 0 && currentMap) {
+    e.preventDefault();
+    deleteNodeCtx();
+  }
+  // Select all
+  if ((e.metaKey || e.ctrlKey) && e.key === 'a' && currentMap) {
+    e.preventDefault();
+    currentMap.nodes.forEach(n => selectedNodeIds.add(n.id));
+    renderNodes();
+    toast(`Selected all ${currentMap.nodes.length} nodes`, 'info');
+  }
+  // Undo
+  if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
+  // Redo
+  if ((e.metaKey || e.ctrlKey) && e.key === 'z' && e.shiftKey) { e.preventDefault(); redo(); }
+  // Save
+  if ((e.metaKey || e.ctrlKey) && e.key === 's') { e.preventDefault(); manualSave(); }
+});
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+async function init() {
+  connDelLayer.style.position = 'absolute';
+  connDelLayer.style.top = '0';
+  connDelLayer.style.left = '0';
+  connDelLayer.style.transformOrigin = '0 0';
+  connDelLayer.style.pointerEvents = 'none';
+  connDelLayer.style.zIndex = '3';
+
+  await loadSettings();
+  await loadMapsList();
+
+  // If there's at least one map, select the most recently updated
+  if (mapsList.length > 0) {
+    selectMap(mapsList[0].id);
+  }
+}
+
+init();
+</script>
+</body>
+</html>
