@@ -1563,7 +1563,10 @@ function openInlineLabelEditor(conn, mx, my) {
   input.addEventListener('click', e => e.stopPropagation());
   input.addEventListener('mousedown', e => e.stopPropagation());
 
+  let finished = false;
   const finish = (save) => {
+    if (finished) return;
+    finished = true;
     if (save) {
       const val = input.value.trim();
       if (val !== (conn.label || '')) {
@@ -1571,16 +1574,19 @@ function openInlineLabelEditor(conn, mx, my) {
         conn.label = val;
       }
     }
+    // Detach blur before removing to prevent double-fire
+    input.removeEventListener('blur', onBlur);
     wrap.remove();
     render();
   };
 
+  const onBlur = () => finish(true);
   input.addEventListener('keydown', e => {
     e.stopPropagation();
     if (e.key === 'Enter') { e.preventDefault(); finish(true); }
     if (e.key === 'Escape') { e.preventDefault(); finish(false); }
   });
-  input.addEventListener('blur', () => finish(true));
+  input.addEventListener('blur', onBlur);
 
   wrap.appendChild(input);
   canvas.appendChild(wrap);
