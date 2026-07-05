@@ -1766,14 +1766,14 @@ canvasWrap.addEventListener('mousedown', e => {
       lassoEl.style.height = '0px';
       lassoEl.style.display = 'block';
       canvasWrap.classList.add('lassoing');
-      if (!e.metaKey && !e.ctrlKey) { selectedNodeIds.clear(); renderNodes(); }
+      if (!e.metaKey && !e.ctrlKey) { selectedNodeIds.clear(); render(); }
     } else {
       isDraggingCanvas = true;
       dragStartX = e.clientX - viewX;
       dragStartY = e.clientY - viewY;
       canvasWrap.classList.add('grabbing');
       selectedNodeIds.clear();
-      renderNodes();
+      render();
     }
     closeNodeCtx();
     closeSidebarCtx();
@@ -1853,7 +1853,7 @@ canvasWrap.addEventListener('mouseup', e => {
       if (n.x + 150 > x1 && n.x < x2 && n.y + 80 > y1 && n.y < y2) { selectedNodeIds.add(n.id); cnt++; }
     });
     if (cnt > 0) toast(`Selected ${cnt} node(s)`, 'info');
-    renderNodes();
+    render();
   }
 
   if (isDraggingCanvas) { isDraggingCanvas = false; canvasWrap.classList.remove('grabbing'); }
@@ -1886,10 +1886,10 @@ function onNodeMouseDown(e, node) {
   if (!selectedNodeIds.has(node.id) && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
     selectedNodeIds.clear();
     selectedNodeIds.add(node.id);
-    renderNodes();
+    render();
   } else if (!selectedNodeIds.has(node.id)) {
     selectedNodeIds.add(node.id);
-    renderNodes();
+    render();
   }
 
   pushUndo();
@@ -1925,7 +1925,7 @@ function onNodeContext(e, node) {
   if (!selectedNodeIds.has(node.id)) {
     selectedNodeIds.clear();
     selectedNodeIds.add(node.id);
-    renderNodes();
+    render();
   }
   rightClickedNodeId = node.id;
 
@@ -2024,7 +2024,7 @@ function editNodeById(id) {
   editingNodeId = node.id;
   selectedNodeIds.clear();
   selectedNodeIds.add(node.id);
-  renderNodes();
+  render();
 
   document.getElementById('panel-title').textContent = 'Edit Node';
   document.getElementById('panel-save').textContent = 'Save Changes';
@@ -2302,7 +2302,7 @@ document.addEventListener('keydown', e => {
   if ((e.metaKey || e.ctrlKey) && e.key === 'a' && currentMap) {
     e.preventDefault();
     currentMap.nodes.forEach(n => selectedNodeIds.add(n.id));
-    renderNodes();
+    render();
     toast(`Selected all ${currentMap.nodes.length} nodes`, 'info');
   }
   // Undo
