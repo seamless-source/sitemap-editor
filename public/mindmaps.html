@@ -1342,7 +1342,7 @@ function nodeColorStyle(color) {
 }
 
 function renderNodes() {
-  canvas.innerHTML = '';
+  canvas.querySelectorAll('.mm-node').forEach(n => n.remove());
   if (!currentMap) return;
 
   const fontClass = settings.fontSize === 'small' ? 'font-size:10px' : settings.fontSize === 'large' ? 'font-size:14px' : '';
